@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 pub mod chunk;
-pub mod linearization;
+pub mod mesh;
 pub mod registry;
 pub mod voxel;
 

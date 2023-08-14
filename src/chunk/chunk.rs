@@ -1,3 +1,5 @@
+use bevy::prelude::{Handle, Mesh};
+
 use super::voxel::Voxel;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -7,6 +9,8 @@ pub struct Chunk {
     pub height: usize,
     pub depth: usize,
     pub dirty: bool,
+    // should this be a Handle<Mesh> or a HandleId?
+    pub mesh_id: Option<Handle<Mesh>>,
 }
 
 impl Chunk {
@@ -20,6 +24,7 @@ impl Chunk {
             height,
             depth,
             dirty: false,
+            mesh_id: None,
         }
     }
 

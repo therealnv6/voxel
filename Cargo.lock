@@ -3135,6 +3135,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "smooth-bevy-cameras"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "555d8849194527d0634400959632e3427249244c98811209fa6428a3fa63fd74"
+dependencies = [
+ "approx",
+ "bevy",
+]
+
+[[package]]
 name = "spirv"
 version = "0.2.0+1.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3480,6 +3490,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "num",
+ "smooth-bevy-cameras",
 ]
 
 [[package]]
