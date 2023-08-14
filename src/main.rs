@@ -66,27 +66,22 @@ pub fn add_mesh(mut commands: Commands, meshes: ResMut<Assets<Mesh>>) {
     let mut registry = ChunkRegistry::new();
     let chunk = registry.get_chunk_at(Coordinates(0, 0));
 
-    chunk.set_voxel(
-        1,
-        0,
-        0,
-        Voxel {
-            color: Color::from([0.0, 0.0, 1.0, 1.0]),
-            size: 1.0,
-            is_solid: true,
-        },
-    );
+    for x in 0..16 {
+        for y in 0..16 {
+            for z in 0..16 {
+                let color = Color::from([x as f32 / 15.0, y as f32 / 15.0, z as f32 / 15.0, 1.0]);
 
-    chunk.set_voxel(
-        2,
-        0,
-        0,
-        Voxel {
-            color: Color::from([1.0, 0.0, 0.0, 1.0]),
-            size: 1.0,
-            is_solid: true,
-        },
-    );
+                chunk.set_voxel(
+                    [x, y, z],
+                    Voxel {
+                        color,
+                        size: 1.0,
+                        is_solid: true,
+                    },
+                );
+            }
+        }
+    }
 
     let mesh = chunk.mesh(meshes);
 

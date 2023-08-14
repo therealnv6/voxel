@@ -22,7 +22,13 @@ impl ChunkRegistry {
     pub fn get_chunk_at(&mut self, coordinates: Coordinates) -> &mut Chunk {
         self.chunks
             .entry(Self::domain_to_id(coordinates))
-            .or_insert_with(|| Chunk::new(Self::CHUNK_SIZE, Self::CHUNK_SIZE, Self::CHUNK_SIZE))
+            .or_insert_with(|| {
+                Chunk::new(
+                    Self::CHUNK_SIZE as u32,
+                    Self::CHUNK_SIZE as u32,
+                    Self::CHUNK_SIZE as u32,
+                )
+            })
     }
 
     pub fn domain_to_id(Coordinates(x, z): Coordinates) -> i32 {
