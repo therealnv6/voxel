@@ -144,8 +144,16 @@ impl Chunk {
                                         index * face_index_count..(index + 1) * face_index_count
                                     })
                             })
+                            // flatten from the Option<T>, as we only need the ones with an actual
+                            // value. the other ones can simply just be ignored.
                             .flatten()
+                            // reverse the order to avoid shifting errors, as removing from the
+                            // start of the vector will simply shift the other indices down, thus
+                            // the indices being incorrect.
                             .rev()
+                            // actually remove the indices; these are the indices that are occluded
+                            // thus should be removed from the indices before they are added to the
+                            // all_indices variable.
                             .for_each(|idx| {
                                 indices.remove(idx);
                             });
