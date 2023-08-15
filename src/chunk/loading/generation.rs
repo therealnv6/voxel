@@ -4,7 +4,7 @@ use futures_lite::future;
 use noise::{NoiseFn, OpenSimplex};
 use rand::Rng;
 
-use crate::chunk::{registry::ChunkRegistry, voxel::Voxel, DiscoverySettings, MeshSettings};
+use crate::chunk::{voxel::Voxel};
 
 const FREQUENCY_SCALE: f64 = 0.1;
 const AMPLITUDE_SCALE: f64 = 5.0;

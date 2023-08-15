@@ -1,4 +1,4 @@
-use bevy::prelude::{Color, IVec3, UVec3};
+use bevy::prelude::{IVec3, UVec3};
 
 use super::{registry::Coordinates, voxel::Voxel};
 /// Represents the different faces of a voxel.
@@ -49,7 +49,7 @@ impl Chunk {
         // Initialize the voxel collection with default values
         let voxels = vec![Voxel::default(); num_voxels as usize];
 
-        let mut chunk = Chunk {
+        let chunk = Chunk {
             voxels,
             width,
             height,
