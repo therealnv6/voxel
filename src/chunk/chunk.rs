@@ -1,6 +1,6 @@
 use bevy::prelude::{Color, IVec3, UVec3};
 
-use super::voxel::Voxel;
+use super::{registry::Coordinates, voxel::Voxel};
 /// Represents the different faces of a voxel.
 #[derive(Debug, Clone, PartialEq)]
 pub enum VoxelFace {
@@ -25,6 +25,7 @@ pub struct Chunk {
     pub depth: u32,
     /// Indicates whether the chunk has been modified and needs an update.
     pub dirty: bool,
+    pub world_position: Coordinates,
 }
 
 impl Chunk {
@@ -39,7 +40,7 @@ impl Chunk {
     /// # Returns
     ///
     /// A new `Chunk` with the provided dimensions and default voxel values.
-    pub fn new(width: u32, height: u32, depth: u32) -> Self {
+    pub fn new(width: u32, height: u32, depth: u32, world_position: Coordinates) -> Self {
         // Calculate the total number of voxels in the chunk
         let num_voxels = width * height * depth;
 
@@ -51,25 +52,36 @@ impl Chunk {
             width,
             height,
             depth,
+            world_position,
             dirty: true,
         };
 
-        // this is just here temporarily for debugging purposes!
-        for x in 0..16 {
-            for y in 0..16 {
-                for z in 0..16 {
-                    let color =
-                        Color::from([x as f32 / 15.0, y as f32 / 15.0, z as f32 / 15.0, 1.0]);
+        // everything below here is just simply for representing the distance in chunks, with
+        // colors. it's just used for debugging.
+        fn generate_unique_color(
+            world_position: Coordinates,
+            chunk_position: Coordinates,
+        ) -> Color {
+            let r = ((world_position.0 * 100 + chunk_position.0) % 255) as f32 / 255.0;
+            let g = 0.5;
+            let b = ((world_position.1 * 100 + chunk_position.1) % 255) as f32 / 255.0;
 
-                    chunk.set_voxel(
-                        [x, y, z],
-                        Voxel {
-                            color,
-                            size: 1.0,
-                            is_solid: true,
-                        },
-                    );
-                }
+            Color::from([r, g, b, 1.0])
+        }
+
+        for x in 0..16 {
+            for z in 0..16 {
+                let chunk_position: Coordinates = (x as i32, z as i32).into();
+                let color = generate_unique_color(world_position, chunk_position);
+
+                chunk.set_voxel(
+                    [x, 0, z],
+                    Voxel {
+                        color,
+                        size: 1.0,
+                        is_solid: true,
+                    },
+                );
             }
         }
 

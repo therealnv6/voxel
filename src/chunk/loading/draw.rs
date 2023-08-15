@@ -1,7 +1,14 @@
+use crate::chunk::registry::Coordinates;
+
 use super::ChunkDrawingQueue;
 use bevy::prelude::*;
 
-const CHUNKS_TO_DRAIN: usize = 4;
+const CHUNKS_TO_DRAIN: usize = 12;
+
+#[derive(Component)]
+pub struct ChunkEntity {
+    pub position: Coordinates,
+}
 
 /// Draws chunks from the chunk loading queue.
 ///
@@ -24,14 +31,16 @@ pub fn draw_chunks(mut commands: Commands, mut queue: ResMut<ChunkDrawingQueue>)
         .map(|(mesh, (x, z))| {
             let transform = Transform::from_xyz(x as f32, 0.0, z as f32);
             let bundle = PbrBundle {
-                mesh: mesh.clone().into(),
+                mesh,
                 transform,
                 ..Default::default()
             };
 
-            return bundle;
+            return (bundle, (x, z));
         })
-        .for_each(|bundle| {
-            commands.spawn(bundle);
+        .for_each(|(bundle, (x, z))| {
+            commands.spawn(bundle).insert(ChunkEntity {
+                position: (x, z).into(),
+            });
         });
 }

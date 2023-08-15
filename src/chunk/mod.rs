@@ -43,6 +43,8 @@ impl Plugin for ChunkPlugin {
             discovery_radius: 5,
         });
 
+        let delay = Duration::from_millis(DISCOVERY_DELAY_MILLIS);
+
         app.add_systems(
             Update,
             (
@@ -50,14 +52,13 @@ impl Plugin for ChunkPlugin {
                 // actively lock objects to be able to access them from other threads. it shouldn't
                 // be too big of a difference in visual representation as long as we don't change
                 // the delay to be something significantly higher.
-                loading::discovery::load_chunks
-                    .run_if(on_timer(Duration::from_millis(DISCOVERY_DELAY_MILLIS))),
-                loading::discovery::handle_mesh_tasks
-                    .run_if(on_timer(Duration::from_millis(DISCOVERY_DELAY_MILLIS))),
-                //
+                loading::discovery::load_chunks.run_if(on_timer(delay)),
+                loading::discovery::handle_mesh_tasks.run_if(on_timer(delay)),
                 // this doesn't matter *too* much if it's ran often, thus a different delay than
                 // the 2 systems above. we'll be tweaking this sometime
                 loading::draw::draw_chunks
+                    .run_if(on_timer(Duration::from_millis(DRAW_DELAY_MILLIS))),
+                loading::unload::unload_distant_chunks
                     .run_if(on_timer(Duration::from_millis(DRAW_DELAY_MILLIS))),
             ),
         );

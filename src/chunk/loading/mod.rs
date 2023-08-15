@@ -9,6 +9,7 @@ use super::chunk::Chunk;
 
 pub mod discovery;
 pub mod draw;
+pub mod unload;
 
 type MeshQueueEntry = (Handle<Mesh>, (i32, i32));
 type ChunkQueueEntry = (Arc<Mutex<Chunk>>, (i32, i32));
