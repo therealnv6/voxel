@@ -42,7 +42,7 @@ pub fn inspector_ui(
 
             if ui.button("Remove PBR Entities").clicked() {
                 pbr_entities.into_iter().for_each(|entity| {
-                    commands.entity(entity).remove::<Handle<StandardMaterial>>();
+                    commands.entity(entity).despawn();
                 })
             }
 
