@@ -1,4 +1,4 @@
-use bevy::prelude::{Handle, IVec3, Mesh, UVec3};
+use bevy::prelude::{Color, Handle, IVec3, Mesh, UVec3};
 
 use super::voxel::Voxel;
 /// Represents the different faces of a voxel.
@@ -48,14 +48,35 @@ impl Chunk {
         // Initialize the voxel collection with default values
         let voxels = vec![Voxel::default(); num_voxels as usize];
 
-        Chunk {
+        let mut chunk = Chunk {
             voxels,
             width,
             height,
             depth,
-            dirty: false,
+            dirty: true,
             mesh_id: None,
+        };
+
+        // this is just here temporarily for debugging purposes!
+        for x in 0..16 {
+            for y in 0..16 {
+                for z in 0..16 {
+                    let color =
+                        Color::from([x as f32 / 15.0, y as f32 / 15.0, z as f32 / 15.0, 1.0]);
+
+                    chunk.set_voxel(
+                        [x, y, z],
+                        Voxel {
+                            color,
+                            size: 1.0,
+                            is_solid: true,
+                        },
+                    );
+                }
+            }
         }
+
+        return chunk;
     }
 
     /// Retrieves the voxel on a specified face of another voxel, if present.
@@ -121,6 +142,10 @@ impl Chunk {
         if x < self.width && y < self.height && z < self.depth {
             let index = self.get_index([x, y, z]);
             self.voxels[index as usize] = voxel;
+
+            // we should mark the chunk as dirty, as this will let the systems know the chunk has
+            // to get re-mashed.
+            self.dirty = true;
         }
     }
 
@@ -137,5 +162,13 @@ impl Chunk {
         let UVec3 { x, y, z } = coordinates.into();
 
         x + y * self.width + z * self.width * self.height
+    }
+
+    pub fn is_dirty(&self) -> bool {
+        return self.dirty;
+    }
+
+    pub fn set_dirty(&mut self, dirty: bool) {
+        self.dirty = dirty;
     }
 }

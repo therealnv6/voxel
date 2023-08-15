@@ -1,14 +1,12 @@
 use bevy::{
-    pbr::wireframe::{Wireframe, WireframePlugin},
+    diagnostic::FrameTimeDiagnosticsPlugin,
+    pbr::wireframe::WireframePlugin,
     prelude::*,
     render::{render_resource::WgpuFeatures, settings::WgpuSettings, RenderPlugin},
     window::PresentMode,
 };
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use chunk::{
-    registry::{ChunkRegistry, Coordinates},
-    voxel::Voxel,
-};
+use bevy_inspector_egui::{bevy_egui::EguiPlugin, DefaultInspectorConfigPlugin};
+
 use input::InputPlugin;
 use smooth_bevy_cameras::{
     controllers::fps::{FpsCameraBundle, FpsCameraController, FpsCameraPlugin},
@@ -17,6 +15,7 @@ use smooth_bevy_cameras::{
 
 pub mod chunk;
 pub mod input;
+pub mod ui;
 
 fn main() {
     App::new()
@@ -37,13 +36,16 @@ fn main() {
                     ..default()
                 }),
             WireframePlugin,
+            FrameTimeDiagnosticsPlugin,
             chunk::ChunkPlugin,
             LookTransformPlugin,
             FpsCameraPlugin::default(),
-            WorldInspectorPlugin::new(),
             InputPlugin,
+            DefaultInspectorConfigPlugin,
+            EguiPlugin,
         ))
-        .add_systems(Startup, (setup, add_mesh))
+        .add_systems(Startup, setup)
+        // .add_systems(Update, inspector_ui.run_if(input_toggle_active(true, KeyCode::Escape)))
         .run();
 }
 
@@ -54,43 +56,12 @@ fn setup(mut commands: Commands) {
             FpsCameraController {
                 // no smoothing, we're just using this plugin because... well.. i'm lazy.
                 smoothing_weight: 0.0,
+                mouse_rotate_sensitivity: Vec2::splat(1.5),
+                translate_sensitivity: 16.0,
                 ..default()
             },
             Vec3::new(-2.0, 5.0, 5.0),
             Vec3::new(0., 0., 0.),
             Vec3::Y,
         ));
-}
-
-pub fn add_mesh(mut commands: Commands, meshes: ResMut<Assets<Mesh>>) {
-    let mut registry = ChunkRegistry::new();
-    let chunk = registry.get_chunk_at(Coordinates(0, 0));
-
-    for x in 0..16 {
-        for y in 0..16 {
-            for z in 0..16 {
-                let color = Color::from([x as f32 / 15.0, y as f32 / 15.0, z as f32 / 15.0, 1.0]);
-
-                chunk.set_voxel(
-                    [x, y, z],
-                    Voxel {
-                        color,
-                        size: 1.0,
-                        is_solid: true,
-                    },
-                );
-            }
-        }
-    }
-
-    let mesh = chunk.mesh(meshes);
-
-    commands.spawn((
-        PbrBundle {
-            mesh: mesh.clone().into(),
-            transform: Transform::from_xyz(0.0, 0.5, 0.0).with_scale(Vec3::splat(0.2)),
-            ..default()
-        },
-        Wireframe,
-    ));
 }

@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Assets, Handle, Mesh, ResMut},
+    prelude::Mesh,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
 };
 
@@ -57,7 +57,7 @@ impl Chunk {
     /// # Returns
     ///
     /// A handle to the generated mesh, which can be used for rendering.
-    pub fn mesh(&mut self, mut meshes: ResMut<Assets<Mesh>>) -> Handle<Mesh> {
+    pub fn mesh(&mut self) -> Mesh {
         // Lists to store vertex positions, colors, and indices for the final mesh
         // relatively ugly, but it works.
         let mut all_vertices = vec![];
@@ -171,10 +171,7 @@ impl Chunk {
         mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, all_colors);
         mesh.set_indices(Some(Indices::U32(all_indices)));
 
-        // Update the mesh_id field with the new mesh
-        self.mesh_id = Some(meshes.add(mesh));
-
         // Return the handle to the mesh
-        self.mesh_id.clone().unwrap()
+        mesh
     }
 }
