@@ -1,4 +1,4 @@
-use bevy::prelude::{Color, Handle, IVec3, Mesh, UVec3};
+use bevy::prelude::{Color, IVec3, UVec3};
 
 use super::voxel::Voxel;
 /// Represents the different faces of a voxel.

@@ -9,7 +9,7 @@ use crate::chunk::{registry::ChunkRegistry, DiscoverySettings, MeshSettings};
 pub fn inspector_ui(
     mut commands: Commands,
     mut context: Query<&mut EguiContext, With<PrimaryWindow>>,
-    mut pbr_entities: Query<Entity, With<Handle<StandardMaterial>>>,
+    pbr_entities: Query<Entity, With<Handle<StandardMaterial>>>,
     mut mesh_settings: ResMut<MeshSettings>,
     mut discovery_settings: ResMut<DiscoverySettings>,
     chunk_registry: Res<ChunkRegistry>,
