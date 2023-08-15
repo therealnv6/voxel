@@ -27,6 +27,7 @@ pub struct Chunk {
     pub dirty: bool,
     /// Whether the chunk has been generated or not.
     pub generated: bool,
+    /// The world position of the chunk.
     pub world_position: Coordinates,
 }
 
@@ -147,22 +148,47 @@ impl Chunk {
         x + y * self.width + z * self.width * self.height
     }
 
+    /// Retrieves the dimensions of the chunk.
+    ///
+    /// # Returns
+    ///
+    /// A tuple `(width, height, depth)` representing the dimensions of the chunk in voxels.
     pub fn get_dimensions(&self) -> (u32, u32, u32) {
-        return (self.width, self.height, self.depth);
+        (self.width, self.height, self.depth)
     }
 
+    /// Sets whether the chunk has been generated.
+    ///
+    /// # Parameters
+    ///
+    /// - `gen`: A boolean indicating whether the chunk has been generated.
     pub fn set_generated(&mut self, gen: bool) {
         self.generated = gen;
     }
 
+    /// Checks if the chunk has been generated.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the chunk has been generated, `false` otherwise.
     pub fn is_generated(&self) -> bool {
-        return self.generated;
+        self.generated
     }
 
+    /// Checks if the chunk has been modified.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the chunk has been modified, `false` otherwise.
     pub fn is_dirty(&self) -> bool {
-        return self.dirty;
+        self.dirty
     }
 
+    /// Sets the dirty status of the chunk.
+    ///
+    /// # Parameters
+    ///
+    /// - `dirty`: A boolean indicating whether the chunk is dirty (modified).
     pub fn set_dirty(&mut self, dirty: bool) {
         self.dirty = dirty;
     }

@@ -4,14 +4,7 @@ use futures_lite::future;
 use noise::{NoiseFn, OpenSimplex};
 use rand::Rng;
 
-use crate::chunk::{voxel::Voxel};
-
-const FREQUENCY_SCALE: f64 = 0.1;
-const AMPLITUDE_SCALE: f64 = 5.0;
-const THRESHOLD: f64 = 0.0;
-
-const OCTAVES: i32 = 4;
-const PERSISTENCE: f64 = 0.5;
+use crate::chunk::{voxel::Voxel, GenerationSettings};
 
 #[derive(Component)]
 pub struct ComputeGen(Task<()>);
@@ -29,13 +22,20 @@ fn generate_color_from_heat(heat: f64) -> Color {
     Color::rgb(r as f32, g as f32, b as f32)
 }
 
-pub fn process_generation(mut commands: Commands) {
+pub fn process_generation(mut commands: Commands, settings: Res<GenerationSettings>) {
     let queue = super::get_generation_queue();
     let entries = &queue.queue;
 
     if entries.is_empty() {
         return;
     }
+
+    let frequency_scale: f64 = settings.frequency_scale;
+    let amplitude_scale: f64 = settings.amplitude_scale;
+    let threshold: f64 = settings.threshold;
+
+    let octaves: i32 = settings.octaves;
+    let persistence: f64 = settings.persistence;
 
     let thread_pool = AsyncComputeTaskPool::get();
 
@@ -56,29 +56,29 @@ pub fn process_generation(mut commands: Commands) {
                         for y in 0..height {
                             let mut amplitude = 1.0;
 
-                            let noise_value = (0..OCTAVES)
+                            let noise_value = (0..octaves)
                                 .map(|_| {
                                     let p = [
-                                        x as f64 * FREQUENCY_SCALE,
-                                        y as f64 * FREQUENCY_SCALE,
-                                        z as f64 * FREQUENCY_SCALE,
+                                        x as f64 * frequency_scale,
+                                        y as f64 * frequency_scale,
+                                        z as f64 * frequency_scale,
                                     ];
 
                                     let value = simplex.get(p);
                                     let result = value * amplitude;
 
-                                    amplitude *= PERSISTENCE;
+                                    amplitude *= persistence;
 
                                     result
                                 })
                                 .sum::<f64>()
-                                * AMPLITUDE_SCALE;
+                                * amplitude_scale;
 
-                            let is_present = noise_value > THRESHOLD;
+                            let is_present = noise_value > threshold;
 
                             if is_present {
-                                let heat = ((noise_value - THRESHOLD)
-                                    / (AMPLITUDE_SCALE - THRESHOLD))
+                                let heat = ((noise_value - threshold)
+                                    / (amplitude_scale - threshold))
                                     .max(0.0)
                                     .min(1.0);
 

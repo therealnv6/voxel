@@ -24,6 +24,15 @@ pub struct DiscoverySettings {
     pub discovery_radius: i8,
 }
 
+#[derive(Resource, Clone)]
+pub struct GenerationSettings {
+    pub frequency_scale: f64,
+    pub amplitude_scale: f64,
+    pub threshold: f64,
+    pub octaves: i32,
+    pub persistence: f64,
+}
+
 pub struct ChunkPlugin;
 
 const DRAW_DELAY_MILLIS: u64 = 20;
@@ -41,6 +50,14 @@ impl Plugin for ChunkPlugin {
 
         app.insert_resource(DiscoverySettings {
             discovery_radius: 5,
+        });
+
+        app.insert_resource(GenerationSettings {
+            frequency_scale: 0.1,
+            amplitude_scale: 5.0,
+            threshold: 0.0,
+            octaves: 4,
+            persistence: 0.5,
         });
 
         let delay = Duration::from_millis(DISCOVERY_DELAY_MILLIS);
