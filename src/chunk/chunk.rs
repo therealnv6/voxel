@@ -25,8 +25,6 @@ pub struct Chunk {
     pub depth: u32,
     /// Indicates whether the chunk has been modified and needs an update.
     pub dirty: bool,
-    /// Stores the identifier of the associated mesh, if generated.
-    pub mesh_id: Option<Handle<Mesh>>,
 }
 
 impl Chunk {
@@ -54,7 +52,6 @@ impl Chunk {
             height,
             depth,
             dirty: true,
-            mesh_id: None,
         };
 
         // this is just here temporarily for debugging purposes!

@@ -3,7 +3,7 @@ use bevy_tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
 
 use super::ChunkDrawingQueue;
-use crate::chunk::registry::ChunkRegistry;
+use crate::chunk::{registry::ChunkRegistry, DiscoverySettings, MeshSettings};
 
 #[derive(Component)]
 pub struct ComputeMesh(Task<(Option<Mesh>, (i32, i32))>);
@@ -23,6 +23,8 @@ pub struct ComputeMesh(Task<(Option<Mesh>, (i32, i32))>);
 pub fn load_chunks(
     mut commands: Commands,
     mut registry: ResMut<ChunkRegistry>,
+    mesh_settings: Res<MeshSettings>,
+    discovery_settings: Res<DiscoverySettings>,
     transform: Query<&Transform, With<Camera>>,
 ) {
     let transform = transform.single();
@@ -33,15 +35,16 @@ pub fn load_chunks(
     let center_chunk_x = (translation.x / chunk_size as f32) as i32;
     let center_chunk_z = (translation.z / chunk_size as f32) as i32;
 
-    let radius = 8; // Change this to your desired radius
+    let radius = discovery_settings.discovery_radius as i32;
     let thread_pool = AsyncComputeTaskPool::get();
 
     (-radius..=radius)
         .flat_map(|x_offset| (-radius..=radius).map(move |z_offset| (x_offset, z_offset)))
-        .map(|(x_offset, z_offset)| {
+        .map(move |(x_offset, z_offset)| {
             let x = (center_chunk_x + x_offset) * chunk_size;
             let z = (center_chunk_z + z_offset) * chunk_size;
 
+            let mesh_settings = mesh_settings.clone();
             let chunk = registry.get_chunk_at([x, z]);
 
             let task: Task<(Option<Mesh>, (i32, i32))> = thread_pool.spawn(async move {
@@ -52,7 +55,7 @@ pub fn load_chunks(
                 if !chunk.is_dirty() {
                     return (None, (x, z));
                 } else {
-                    let mesh = chunk.mesh();
+                    let mesh = chunk.mesh(mesh_settings);
                     let pos = (x, z);
 
                     chunk.set_dirty(false);

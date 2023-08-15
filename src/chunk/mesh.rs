@@ -6,6 +6,7 @@ use bevy::{
 use super::{
     chunk::{Chunk, VoxelFace},
     voxel::{Voxel, VoxelMeshData},
+    MeshSettings,
 };
 
 impl Voxel {
@@ -57,7 +58,7 @@ impl Chunk {
     /// # Returns
     ///
     /// A handle to the generated mesh, which can be used for rendering.
-    pub fn mesh(&mut self) -> Mesh {
+    pub fn mesh(&mut self, settings: MeshSettings) -> Mesh {
         // Lists to store vertex positions, colors, and indices for the final mesh
         // relatively ugly, but it works.
         let mut all_vertices = vec![];
@@ -128,35 +129,37 @@ impl Chunk {
                             VoxelFace::Down,
                         ];
 
-                        let face_index_count = 6; // number of indices per face
-                        voxel_faces
-                            .iter()
-                            // we need the index for getting the correct index for removing the
-                            // indices, so we're enumerating over the faces.
-                            .enumerate()
-                            .filter_map(|(index, face)| {
-                                // get the neighboring voxel depending on the face
-                                self.get_voxel_face([x, y, z], face.clone())
-                                    // i genuinely didn't know you could call .filter() on an
-                                    // Option<T>, but well, this works.
-                                    .filter(|voxel| voxel.is_solid())
-                                    .map(|_| {
-                                        index * face_index_count..(index + 1) * face_index_count
-                                    })
-                            })
-                            // flatten from the Option<T>, as we only need the ones with an actual
-                            // value. the other ones can simply just be ignored.
-                            .flatten()
-                            // reverse the order to avoid shifting errors, as removing from the
-                            // start of the vector will simply shift the other indices down, thus
-                            // the indices being incorrect.
-                            .rev()
-                            // actually remove the indices; these are the indices that are occluded
-                            // thus should be removed from the indices before they are added to the
-                            // all_indices variable.
-                            .for_each(|idx| {
-                                indices.remove(idx);
-                            });
+                        if settings.occlusion_culling {
+                            let face_index_count = 6; // number of indices per face
+                            voxel_faces
+                                .iter()
+                                // we need the index for getting the correct index for removing the
+                                // indices, so we're enumerating over the faces.
+                                .enumerate()
+                                .filter_map(|(index, face)| {
+                                    // get the neighboring voxel depending on the face
+                                    self.get_voxel_face([x, y, z], face.clone())
+                                        // i genuinely didn't know you could call .filter() on an
+                                        // Option<T>, but well, this works.
+                                        .filter(|voxel| voxel.is_solid())
+                                        .map(|_| {
+                                            index * face_index_count..(index + 1) * face_index_count
+                                        })
+                                })
+                                // flatten from the Option<T>, as we only need the ones with an actual
+                                // value. the other ones can simply just be ignored.
+                                .flatten()
+                                // reverse the order to avoid shifting errors, as removing from the
+                                // start of the vector will simply shift the other indices down, thus
+                                // the indices being incorrect.
+                                .rev()
+                                // actually remove the indices; these are the indices that are occluded
+                                // thus should be removed from the indices before they are added to the
+                                // all_indices variable.
+                                .for_each(|idx| {
+                                    indices.remove(idx);
+                                });
+                        }
 
                         all_indices.extend(indices);
                         all_vertices.extend(vertices);

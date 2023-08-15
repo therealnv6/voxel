@@ -1,90 +1,56 @@
-// use std::io::{self, Read, Write};
-
-use bevy::{
-    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
-    prelude::*,
-};
-use egui::plot::{Line, Plot, PlotPoints};
+use bevy::prelude::*;
 
 use bevy_egui::EguiContext;
-use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use bevy_window::PrimaryWindow;
+use egui::Slider;
 
-pub fn inspector_ui(world: &mut World, mut selected_entities: Local<SelectedEntities>) {
-    let mut egui_context = world
-        .query_filtered::<&mut EguiContext, With<PrimaryWindow>>()
-        .single(world)
-        .clone();
+use crate::chunk::{registry::ChunkRegistry, DiscoverySettings, MeshSettings};
 
-    egui::SidePanel::left("hierarchy")
-        .default_width(200.0)
-        .show(egui_context.get_mut(), |ui| {
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.heading("Hierarchy");
+pub fn inspector_ui(
+    mut commands: Commands,
+    mut context: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut pbr_entities: Query<Entity, With<Handle<StandardMaterial>>>,
+    mut mesh_settings: ResMut<MeshSettings>,
+    mut discovery_settings: ResMut<DiscoverySettings>,
+    chunk_registry: Res<ChunkRegistry>,
+) {
+    let mut ctx = context.single_mut();
 
-                bevy_inspector_egui::bevy_inspector::hierarchy::hierarchy_ui(
-                    world,
-                    ui,
-                    &mut selected_entities,
-                );
+    egui::TopBottomPanel::bottom("hierarchy")
+        .default_height(150.0)
+        .show(ctx.get_mut(), |ui| {
+            ui.heading("Chunk Settings");
+            ui.checkbox(&mut mesh_settings.occlusion_culling, "Occlusion Culling");
 
-                ui.label("Press escape to toggle UI");
-                ui.allocate_space(ui.available_size());
-            });
-        });
+            ui.add(
+                Slider::new(&mut discovery_settings.discovery_radius, 1..=40)
+                    .text("Discovery Radius"),
+            );
 
-    egui::SidePanel::right("inspector")
-        .default_width(250.0)
-        .show(egui_context.get_mut(), |ui| {
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.heading("Inspector");
-
-                match selected_entities.as_slice() {
-                    &[entity] => {
-                        bevy_inspector_egui::bevy_inspector::ui_for_entity(world, entity, ui);
-                    }
-                    entities => {
-                        bevy_inspector_egui::bevy_inspector::ui_for_entities_shared_components(
-                            world, entities, ui,
-                        );
-                    }
-                }
-
-                ui.allocate_space(ui.available_size());
-            });
-        });
-
-    egui::TopBottomPanel::bottom("diagnostics")
-        .max_height(300.0)
-        .show(egui_context.get_mut(), |ui| {
-            let diagnostics = world
-                .get_resource::<DiagnosticsStore>()
-                .expect("DiagnosticStore is not present, why?");
-
-            for diagnostic in [FrameTimeDiagnosticsPlugin::FPS] {
-                if let Some(value) = diagnostics.get(diagnostic) {
-                    let smoothed = value.smoothed();
-
-                    if let Some(smoothed) = smoothed {
-                        ui.label(format!("FPS: {}", smoothed));
-                    }
-
-                    // Add a framerate graph using egui::plot::Plot
-                    let values: PlotPoints = value
-                        .values()
-                        .enumerate()
-                        .map(|(i, sample)| [i as f64, *sample])
-                        .collect();
-
-                    Plot::new("framerate")
-                        .view_aspect(50.0)
-                        .width(250.0)
-                        .show(ui, |ui| {
-                            ui.line(Line::new(values));
-                        });
-                }
+            if ui.button("Rebuild Chunks").clicked() {
+                // loop over all of the chunks to mark them as dirty
+                chunk_registry
+                    // gets all of the chunks
+                    .get_all_chunks()
+                    .into_iter()
+                    // lock all of the chunks, this is then flatly mapped, meaning every lock
+                    // result that is not Ok(T) will be disposed.
+                    .flat_map(|chunk| chunk.lock())
+                    // actually mark them as dirty; this is straightforward.
+                    .for_each(|mut chunk| chunk.set_dirty(true));
             }
 
-            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+            if ui.button("Remove PBR Entities").clicked() {
+                pbr_entities.into_iter().for_each(|entity| {
+                    commands.entity(entity).remove::<Handle<StandardMaterial>>();
+                })
+            }
+
+            ui.with_layout(egui::Layout::top_down(egui::Align::RIGHT), |ui| {
+                ui.label("Press Escape to toggle UI");
+                ui.label("Press LeftAlt to toggle mouse");
+            });
+
+            ui.allocate_space(ui.available_size());
         });
 }

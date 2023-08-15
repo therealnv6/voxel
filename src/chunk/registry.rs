@@ -35,6 +35,12 @@ impl ChunkRegistry {
             .clone()
     }
 
+    pub fn get_all_chunks(
+        &self,
+    ) -> bevy::utils::hashbrown::hash_map::Values<'_, i32, Arc<std::sync::Mutex<Chunk>>> {
+        return self.chunks.values();
+    }
+
     pub fn domain_to_id(coordinates: impl Into<Coordinates>) -> i32 {
         let Coordinates(x, z) = coordinates.into();
 

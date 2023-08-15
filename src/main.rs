@@ -1,5 +1,6 @@
 use bevy::{
     diagnostic::FrameTimeDiagnosticsPlugin,
+    input::common_conditions::input_toggle_active,
     pbr::wireframe::WireframePlugin,
     prelude::*,
     render::{render_resource::WgpuFeatures, settings::WgpuSettings, RenderPlugin},
@@ -12,6 +13,7 @@ use smooth_bevy_cameras::{
     controllers::fps::{FpsCameraBundle, FpsCameraController, FpsCameraPlugin},
     LookTransformPlugin,
 };
+use ui::inspector_ui;
 
 pub mod chunk;
 pub mod input;
@@ -45,16 +47,20 @@ fn main() {
             EguiPlugin,
         ))
         .add_systems(Startup, setup)
-        // .add_systems(Update, inspector_ui.run_if(input_toggle_active(true, KeyCode::Escape)))
+        .add_systems(
+            Update,
+            inspector_ui.run_if(input_toggle_active(true, KeyCode::Escape)),
+        )
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, input: Res<Input<KeyCode>>) {
     commands
         .spawn(Camera3dBundle::default())
         .insert(FpsCameraBundle::new(
             FpsCameraController {
                 // no smoothing, we're just using this plugin because... well.. i'm lazy.
+                enabled: input_toggle_active(true, KeyCode::Escape)(input),
                 smoothing_weight: 0.0,
                 mouse_rotate_sensitivity: Vec2::splat(1.5),
                 translate_sensitivity: 16.0,

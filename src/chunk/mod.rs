@@ -13,6 +13,17 @@ pub mod mesh;
 pub mod registry;
 pub mod voxel;
 
+#[derive(Resource, Clone)]
+pub struct MeshSettings {
+    pub occlusion_culling: bool,
+}
+
+#[derive(Resource, Clone)]
+pub struct DiscoverySettings {
+    // we don't need much more than an u8 for the discovery radius.
+    pub discovery_radius: i8,
+}
+
 pub struct ChunkPlugin;
 
 const DRAW_DELAY_MILLIS: u64 = 20;
@@ -23,6 +34,14 @@ impl Plugin for ChunkPlugin {
         app.insert_resource(ChunkRegistry::new());
         app.insert_resource(ChunkMeshingQueue::new());
         app.insert_resource(ChunkDrawingQueue::new());
+
+        app.insert_resource(MeshSettings {
+            occlusion_culling: true,
+        });
+
+        app.insert_resource(DiscoverySettings {
+            discovery_radius: 5,
+        });
 
         app.add_systems(
             Update,
