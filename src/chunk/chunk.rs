@@ -25,6 +25,8 @@ pub struct Chunk {
     pub depth: u32,
     /// Indicates whether the chunk has been modified and needs an update.
     pub dirty: bool,
+    /// Whether the chunk has been generated or not.
+    pub generated: bool,
     pub world_position: Coordinates,
 }
 
@@ -53,37 +55,9 @@ impl Chunk {
             height,
             depth,
             world_position,
-            dirty: true,
+            generated: false,
+            dirty: false,
         };
-
-        // everything below here is just simply for representing the distance in chunks, with
-        // colors. it's just used for debugging.
-        fn generate_unique_color(
-            world_position: Coordinates,
-            chunk_position: Coordinates,
-        ) -> Color {
-            let r = ((world_position.0 * 100 + chunk_position.0) % 255) as f32 / 255.0;
-            let g = 0.5;
-            let b = ((world_position.1 * 100 + chunk_position.1) % 255) as f32 / 255.0;
-
-            Color::from([r, g, b, 1.0])
-        }
-
-        for x in 0..16 {
-            for z in 0..16 {
-                let chunk_position: Coordinates = (x as i32, z as i32).into();
-                let color = generate_unique_color(world_position, chunk_position);
-
-                chunk.set_voxel(
-                    [x, 0, z],
-                    Voxel {
-                        color,
-                        size: 1.0,
-                        is_solid: true,
-                    },
-                );
-            }
-        }
 
         return chunk;
     }
@@ -171,6 +145,18 @@ impl Chunk {
         let UVec3 { x, y, z } = coordinates.into();
 
         x + y * self.width + z * self.width * self.height
+    }
+
+    pub fn get_dimensions(&self) -> (u32, u32, u32) {
+        return (self.width, self.height, self.depth);
+    }
+
+    pub fn set_generated(&mut self, gen: bool) {
+        self.generated = gen;
+    }
+
+    pub fn is_generated(&self) -> bool {
+        return self.generated;
     }
 
     pub fn is_dirty(&self) -> bool {

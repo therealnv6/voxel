@@ -22,6 +22,12 @@ bevy_egui = "0.21.0"
 
 # async crates
 futures-lite = "1.13.0"
+fuss = "0.2.2"
+noise = "0.8.2"
+noisy_bevy = "0.4.0"
+rand = "0.8.5"
+parking_lot = "0.12.1"
+once_cell = "1.18.0"
 
 [dependencies.bevy]
 version = "0.11.0"

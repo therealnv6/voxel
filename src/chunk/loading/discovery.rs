@@ -52,7 +52,7 @@ pub fn load_chunks(
                     return (None, (x, z));
                 };
 
-                if !chunk.is_dirty() {
+                if !chunk.is_dirty() || !chunk.is_generated() {
                     return (None, (x, z));
                 } else {
                     let mesh = chunk.mesh(mesh_settings);

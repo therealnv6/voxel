@@ -32,8 +32,8 @@ const DISCOVERY_DELAY_MILLIS: u64 = 500;
 impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ChunkRegistry::new());
-        app.insert_resource(ChunkMeshingQueue::new());
-        app.insert_resource(ChunkDrawingQueue::new());
+        app.insert_resource(ChunkMeshingQueue::default());
+        app.insert_resource(ChunkDrawingQueue::default());
 
         app.insert_resource(MeshSettings {
             occlusion_culling: true,
@@ -60,6 +60,11 @@ impl Plugin for ChunkPlugin {
                     .run_if(on_timer(Duration::from_millis(DRAW_DELAY_MILLIS))),
                 loading::unload::unload_distant_chunks
                     .run_if(on_timer(Duration::from_millis(DRAW_DELAY_MILLIS))),
+                // these are chunk generation systems; they are relatively resource-intensive, thus
+                // they are slower than the 2 systems above. we might want to tweak these in
+                // the end as well.
+                loading::generation::process_generation.run_if(on_timer(delay)),
+                loading::generation::handle_gen_tasks.run_if(on_timer(delay)),
             ),
         );
     }

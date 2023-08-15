@@ -17,6 +17,7 @@ use ui::inspector_ui;
 
 pub mod chunk;
 pub mod input;
+pub mod terrain;
 pub mod ui;
 
 fn main() {
@@ -40,6 +41,7 @@ fn main() {
             WireframePlugin,
             FrameTimeDiagnosticsPlugin,
             chunk::ChunkPlugin,
+            terrain::TerrainPlugin,
             LookTransformPlugin,
             FpsCameraPlugin::default(),
             InputPlugin,
@@ -55,6 +57,16 @@ fn main() {
 }
 
 fn setup(mut commands: Commands, input: Res<Input<KeyCode>>) {
+    commands.spawn(PointLightBundle {
+        point_light: PointLight {
+            intensity: 1500.0,
+            shadows_enabled: true,
+            ..default()
+        },
+        transform: Transform::from_xyz(4.0, 8.0, 4.0),
+        ..default()
+    });
+
     commands
         .spawn(Camera3dBundle::default())
         .insert(FpsCameraBundle::new(
@@ -63,7 +75,7 @@ fn setup(mut commands: Commands, input: Res<Input<KeyCode>>) {
                 enabled: input_toggle_active(true, KeyCode::Escape)(input),
                 smoothing_weight: 0.0,
                 mouse_rotate_sensitivity: Vec2::splat(1.5),
-                translate_sensitivity: 16.0,
+                translate_sensitivity: 25.0,
                 ..default()
             },
             Vec3::new(-2.0, 5.0, 5.0),
