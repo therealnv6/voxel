@@ -19,6 +19,7 @@ pub mod chunk;
 pub mod input;
 pub mod terrain;
 pub mod ui;
+pub mod util;
 
 fn main() {
     App::new()

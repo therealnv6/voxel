@@ -10,8 +10,8 @@ use crate::chunk::{voxel::Voxel, GenerationSettings};
 pub struct ComputeGen(Task<()>);
 
 fn generate_color_from_heat(heat: f64) -> Color {
-    const DARK_FACTOR: f64 = 0.5;
-    const SENSITIVITY: f64 = 3.0;
+    const DARK_FACTOR: f64 = 0.8;
+    const SENSITIVITY: f64 = 5000.0;
 
     let modified_heat = (heat * SENSITIVITY).max(0.0);
 
@@ -23,8 +23,8 @@ fn generate_color_from_heat(heat: f64) -> Color {
 }
 
 pub fn process_generation(mut commands: Commands, settings: Res<GenerationSettings>) {
-    let queue = super::get_generation_queue();
-    let entries = &queue.queue;
+    let mut queue = super::get_generation_queue();
+    let entries = &mut queue.queue;
 
     if entries.is_empty() {
         return;
@@ -39,7 +39,9 @@ pub fn process_generation(mut commands: Commands, settings: Res<GenerationSettin
 
     let thread_pool = AsyncComputeTaskPool::get();
 
-    for (chunk, _) in entries {
+    // we want to drain here instead of just looping over all of them, otherwise we will get
+    // gigantic spikes because of handling every generation task in the same frame.
+    for (chunk, _) in entries.drain(0..entries.len().min(4)) {
         let chunk = chunk.clone();
 
         let task: Task<()> = thread_pool.spawn(async move {

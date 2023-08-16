@@ -3,7 +3,10 @@ use bevy_tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
 
 use super::ChunkDrawingQueue;
-use crate::chunk::{registry::ChunkRegistry, DiscoverySettings, MeshSettings};
+use crate::{
+    chunk::{registry::ChunkRegistry, DiscoverySettings, MeshSettings},
+    util::spiral::SpiralIterator,
+};
 
 #[derive(Component)]
 pub struct ComputeMesh(Task<(Option<Mesh>, (i32, i32))>);
@@ -38,6 +41,13 @@ pub fn load_chunks(
     let radius = discovery_settings.discovery_radius as i32;
     let thread_pool = AsyncComputeTaskPool::get();
 
+    // the spiral iterator doesn't seem to play nice with this sadly, gonna have to do some
+    // tinkering with the spiral iterator implementation. mainly, it doesn't iterate over chunks in
+    // between somehow (not sure how to explain this.). the chunks on the edge of the radius also
+    // seem to be flickering, which means the unloading system detects chunks that shouldn't be
+    // loaded withiun the radius, but the discovery algorithm still adds them to the queue. which
+    // means it iterates more than it should in some direction.
+    // SpiralIterator::new(center_chunk_x, center_chunk_z, radius)
     (-radius..=radius)
         .flat_map(|x_offset| (-radius..=radius).map(move |z_offset| (x_offset, z_offset)))
         .map(move |(x_offset, z_offset)| {

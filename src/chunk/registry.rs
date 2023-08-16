@@ -16,7 +16,7 @@ pub struct ChunkRegistry {
 pub struct Coordinates(pub i32, pub i32);
 
 impl ChunkRegistry {
-    pub const CHUNK_SIZE: usize = 32;
+    pub const CHUNK_SIZE: usize = 16;
     pub const CHUNK_GRID_SIZE: i32 = 1024;
 
     pub fn new() -> Self {
@@ -47,7 +47,7 @@ impl ChunkRegistry {
 
         let chunk = Arc::new(Mutex::new(Chunk::new(
             Self::CHUNK_SIZE as u32,
-            Self::CHUNK_SIZE as u32,
+            32,
             Self::CHUNK_SIZE as u32,
             // Get the center of the chunk.
             Self::get_chunk_center(coordinates),

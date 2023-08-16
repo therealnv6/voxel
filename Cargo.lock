@@ -3348,6 +3348,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spiral"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "337538a1d3992a7a0792e1e81c630fa8c04d9dd160591a938afe5fe899e0c1da"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "spirv"
 version = "0.2.0+1.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3707,6 +3716,7 @@ dependencies = [
  "parking_lot",
  "rand 0.8.5",
  "smooth-bevy-cameras",
+ "spiral",
 ]
 
 [[package]]
