@@ -1,13 +1,7 @@
-use crate::{
-    chunk::{voxel::Voxel, GenerationSettings, OpenSimplexResource},
-    util::task::TaskWrapper,
-};
+use crate::chunk::{voxel::Voxel, GenerationSettings, OpenSimplexResource};
 use bevy::prelude::*;
 use bevy_tasks::{AsyncComputeTaskPool, Task};
-use futures_lite::future;
 use noise::NoiseFn;
-
-pub type ComputeGeneration = TaskWrapper<()>;
 
 #[derive(Component)]
 pub struct ComputeGen(Task<()>);
