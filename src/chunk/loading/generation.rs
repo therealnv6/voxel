@@ -1,10 +1,13 @@
+use crate::{
+    chunk::{voxel::Voxel, GenerationSettings, OpenSimplexResource},
+    util::task::TaskWrapper,
+};
 use bevy::prelude::*;
 use bevy_tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
-use noise::{NoiseFn, OpenSimplex};
-use rand::Rng;
+use noise::NoiseFn;
 
-use crate::chunk::{voxel::Voxel, GenerationSettings, OpenSimplexResource};
+pub type ComputeGeneration = TaskWrapper<()>;
 
 #[derive(Component)]
 pub struct ComputeGen(Task<()>);
@@ -45,8 +48,6 @@ pub fn process_generation(
 
     let thread_pool = AsyncComputeTaskPool::get();
 
-    // we want to drain here instead of just looping over all of them, otherwise we will get
-    // gigantic spikes because of handling every generation task in the same frame.
     for (chunk, _) in entries.drain(0..entries.len().min(4)) {
         let chunk = chunk.clone();
 
@@ -58,22 +59,25 @@ pub fn process_generation(
 
                 let (width, height, depth) = chunk.get_dimensions();
 
-                for x in 0..width {
-                    for z in 0..depth {
+                for z in 0..depth {
+                    for x in 0..width {
                         for y in 0..height {
                             let mut amplitude = 1.0;
 
+                            let x_coord =
+                                (x as f64 + chunk.world_position.0 as f64) * frequency_scale;
+                            let y_coord = y as f64 * frequency_scale;
+                            let z_coord =
+                                (z as f64 + chunk.world_position.1 as f64) * frequency_scale;
+
                             let noise_value = (0..octaves)
                                 .map(|_| {
-                                    let x_coord = (x as f64 * frequency_scale)
-                                        + (((chunk.world_position.0 * 2) / width as i32) as f64
-                                            + 1.0);
-                                    let y_coord = y as f64 * frequency_scale;
-                                    let z_coord = (z as f64 * frequency_scale)
-                                        + (((chunk.world_position.1 * 2) / depth as i32) as f64
-                                            + 1.0);
+                                    let x_coord_with_offset =
+                                        x_coord + (x as f64 / width as f64) * frequency_scale;
+                                    let z_coord_with_offset =
+                                        z_coord + (z as f64 / depth as f64) * frequency_scale;
 
-                                    let p = [x_coord, y_coord, z_coord];
+                                    let p = [x_coord_with_offset, y_coord, z_coord_with_offset];
 
                                     let value = simplex.get(p);
                                     let result = value * amplitude;
@@ -114,10 +118,12 @@ pub fn process_generation(
     }
 }
 
-pub fn handle_gen_tasks(mut commands: Commands, mut tasks: Query<(Entity, &mut ComputeGen)>) {
-    for (entity, mut task) in &mut tasks {
-        if let Some(()) = future::block_on(future::poll_once(&mut task.0)) {
+pub fn handle_gen_tasks(mut commands: Commands, tasks: Query<(Entity, &ComputeGen)>) {
+    tasks
+        .iter()
+        .take(2)
+        .filter(|(_, ComputeGen(task))| task.is_finished())
+        .for_each(|(entity, _)| {
             commands.entity(entity).remove::<ComputeGen>();
-        }
-    }
+        });
 }

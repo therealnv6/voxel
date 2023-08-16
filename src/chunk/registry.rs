@@ -47,7 +47,7 @@ impl ChunkRegistry {
 
         let chunk = Arc::new(Mutex::new(Chunk::new(
             Self::CHUNK_SIZE as u32,
-            32,
+            128,
             Self::CHUNK_SIZE as u32,
             // Get the center of the chunk.
             Self::get_chunk_center(coordinates),

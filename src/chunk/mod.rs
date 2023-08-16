@@ -62,10 +62,10 @@ impl Plugin for ChunkPlugin {
         });
 
         app.insert_resource(GenerationSettings {
-            frequency_scale: 0.1,
-            amplitude_scale: 5.0,
-            threshold: 0.0,
-            octaves: 4,
+            frequency_scale: 0.03,
+            amplitude_scale: 20.0,
+            threshold: 0.4,
+            octaves: 6,
             persistence: 0.5,
         });
 

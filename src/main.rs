@@ -85,7 +85,7 @@ fn setup(mut commands: Commands, input: Res<Input<KeyCode>>) {
             FpsCameraController {
                 // no smoothing, we're just using this plugin because... well.. i'm lazy.
                 enabled: input_toggle_active(true, KeyCode::Escape)(input),
-                smoothing_weight: 0.0,
+                smoothing_weight: 0.8,
                 mouse_rotate_sensitivity: Vec2::splat(1.5),
                 translate_sensitivity: 25.0,
                 ..default()
