@@ -12,6 +12,7 @@ pub fn inspector_ui(
     mut mesh_settings: ResMut<MeshSettings>,
     mut gen_settings: ResMut<GenerationSettings>,
     mut discovery_settings: ResMut<DiscoverySettings>,
+    directional_light_entities: Query<Entity, With<DirectionalLight>>,
     pbr_entities: Query<Entity, With<Handle<StandardMaterial>>>,
     chunk_registry: Res<ChunkRegistry>,
 ) {
@@ -53,7 +54,7 @@ pub fn inspector_ui(
                 }
             });
 
-            egui::CentralPanel::default().show_inside(ui, |ui| {
+            egui::SidePanel::left("generation-settings").show_inside(ui, |ui| {
                 ui.heading("Generation Settings");
 
                 ui.add(
@@ -68,6 +69,16 @@ pub fn inspector_ui(
                 ui.add(Slider::new(&mut gen_settings.threshold, 0.0..=40.0).text("Threshold"));
                 ui.add(Slider::new(&mut gen_settings.octaves, 0..=40).text("Octaves"));
                 ui.add(Slider::new(&mut gen_settings.persistence, 0.0..=40.0).text("Persistence"));
+            });
+
+            egui::SidePanel::left("visual-settings").show_inside(ui, |ui| {
+                ui.heading("Visual Settings");
+
+                if ui.button("Disable Directional Light").clicked() {
+                    for entity in &directional_light_entities {
+                        commands.entity(entity).despawn();
+                    }
+                }
             });
 
             ui.allocate_space(ui.available_size());

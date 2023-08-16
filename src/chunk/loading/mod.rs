@@ -15,9 +15,14 @@ pub mod draw;
 pub mod generation;
 pub mod unload;
 
-pub static CHUNK_GEN_QUEUE: Lazy<RwLock<ChunkGenerationQueue>> =
+// unlike the other queues, this queue is static; this is because we are accessing it from chunk
+// instantiation. if we'd have to add them to another queue and handle it there, i feel like it'd
+// be too much overhead.
+static CHUNK_GEN_QUEUE: Lazy<RwLock<ChunkGenerationQueue>> =
     Lazy::new(|| RwLock::new(ChunkGenerationQueue::default()));
 
+// this is just a simple helper method for accessing the generation queue. use this instead of
+// accessing the CHUNK_GEN_QUEUE manually!
 pub fn get_generation_queue<'a>() -> RwLockWriteGuard<'a, ChunkGenerationQueue> {
     CHUNK_GEN_QUEUE.write()
 }

@@ -3,10 +3,7 @@ use bevy_tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
 
 use super::ChunkDrawingQueue;
-use crate::{
-    chunk::{registry::ChunkRegistry, DiscoverySettings, MeshSettings},
-    util::spiral::SpiralIterator,
-};
+use crate::chunk::{registry::ChunkRegistry, DiscoverySettings, MeshSettings};
 
 #[derive(Component)]
 pub struct ComputeMesh(Task<(Option<Mesh>, (i32, i32))>);

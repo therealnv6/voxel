@@ -1,7 +1,9 @@
+use std::f32::consts::PI;
+
 use bevy::{
     diagnostic::FrameTimeDiagnosticsPlugin,
     input::common_conditions::input_toggle_active,
-    pbr::wireframe::WireframePlugin,
+    pbr::{wireframe::WireframePlugin, CascadeShadowConfigBuilder},
     prelude::*,
     render::{render_resource::WgpuFeatures, settings::WgpuSettings, RenderPlugin},
     window::PresentMode,
@@ -17,7 +19,6 @@ use ui::inspector_ui;
 
 pub mod chunk;
 pub mod input;
-pub mod terrain;
 pub mod ui;
 pub mod util;
 
@@ -42,7 +43,6 @@ fn main() {
             WireframePlugin,
             FrameTimeDiagnosticsPlugin,
             chunk::ChunkPlugin,
-            terrain::TerrainPlugin,
             LookTransformPlugin,
             FpsCameraPlugin::default(),
             InputPlugin,
@@ -58,13 +58,24 @@ fn main() {
 }
 
 fn setup(mut commands: Commands, input: Res<Input<KeyCode>>) {
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 1500.0,
+    commands.spawn(DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            illuminance: 5000.0,
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(4.0, 8.0, 4.0),
+        transform: Transform {
+            translation: Vec3::new(0.0, 100.0, 0.0),
+            rotation: Quat::from_rotation_x(-PI / 4.),
+            ..default()
+        },
+        cascade_shadow_config: CascadeShadowConfigBuilder {
+            num_cascades: 2,
+            first_cascade_far_bound: 4.0,
+            maximum_distance: 80.0,
+            ..default()
+        }
+        .into(),
         ..default()
     });
 

@@ -19,7 +19,11 @@ pub struct ChunkEntity {
 ///
 /// - `commands`: A `Commands` resource used to issue commands to the Bevy ECS framework for spawning entities.
 /// - `queue`: A `ResMut` resource containing the chunk loading queue with meshes and positions.
-pub fn draw_chunks(mut commands: Commands, mut queue: ResMut<ChunkDrawingQueue>) {
+pub fn draw_chunks(
+    mut commands: Commands,
+    mut queue: ResMut<ChunkDrawingQueue>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
     let entries = &mut queue.queue;
 
     if entries.is_empty() {
@@ -33,6 +37,7 @@ pub fn draw_chunks(mut commands: Commands, mut queue: ResMut<ChunkDrawingQueue>)
             let bundle = PbrBundle {
                 mesh,
                 transform,
+                material: materials.add(StandardMaterial::default()),
                 ..Default::default()
             };
 

@@ -174,7 +174,12 @@ impl Chunk {
         mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, all_colors);
         mesh.set_indices(Some(Indices::U32(all_indices)));
 
-        // Return the handle to the mesh
+        // we have to generate the normals for shading; in this case, we'll be using flat normals.
+        // should don't see much point in creating our own normal set as they are quite
+        // literally.... cubes.
+        mesh.duplicate_vertices();
+        mesh.compute_flat_normals();
+
         mesh
     }
 }

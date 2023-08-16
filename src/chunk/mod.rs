@@ -1,6 +1,8 @@
 use std::time::Duration;
 
 use bevy::{prelude::*, time::common_conditions::on_timer};
+use noise::OpenSimplex;
+use rand::Rng;
 
 use self::{
     loading::{ChunkDrawingQueue, ChunkMeshingQueue},
@@ -12,6 +14,9 @@ pub mod loading;
 pub mod mesh;
 pub mod registry;
 pub mod voxel;
+
+#[derive(Resource, Clone)]
+pub struct OpenSimplexResource(OpenSimplex);
 
 #[derive(Resource, Clone)]
 pub struct MeshSettings {
@@ -43,6 +48,10 @@ impl Plugin for ChunkPlugin {
         app.insert_resource(ChunkRegistry::new());
         app.insert_resource(ChunkMeshingQueue::default());
         app.insert_resource(ChunkDrawingQueue::default());
+
+        app.insert_resource(OpenSimplexResource(OpenSimplex::new(
+            rand::thread_rng().gen_range(0..=50000),
+        )));
 
         app.insert_resource(MeshSettings {
             occlusion_culling: true,
