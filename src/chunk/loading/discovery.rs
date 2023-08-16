@@ -47,6 +47,7 @@ pub fn load_chunks(
     // seem to be flickering, which means the unloading system detects chunks that shouldn't be
     // loaded withiun the radius, but the discovery algorithm still adds them to the queue. which
     // means it iterates more than it should in some direction.
+    // see issue on github: https://github.com/therealnv6/voxel/issues/1
     // SpiralIterator::new(center_chunk_x, center_chunk_z, radius)
     (-radius..=radius)
         .flat_map(|x_offset| (-radius..=radius).map(move |z_offset| (x_offset, z_offset)))
