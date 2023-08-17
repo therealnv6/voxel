@@ -4,7 +4,7 @@ use bevy::{
 };
 
 use super::{
-    chunk::{Chunk, VoxelFace},
+    chunk::{VoxelFace},
     voxel::{Voxel, VoxelMeshData},
     MeshSettings,
 };
