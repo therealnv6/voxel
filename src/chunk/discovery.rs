@@ -1,9 +1,7 @@
 use bevy::prelude::*;
 
 use crate::chunk::{
-    event::ChunkCreateEvent,
-    events::gen::ChunkGenerateEvent,
-    registry::{ChunkRegistry, Coordinates},
+    registry::{ChunkRegistry},
     ChunkEntity, DiscoverySettings,
 };
 
