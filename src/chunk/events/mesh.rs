@@ -25,23 +25,25 @@ pub fn mesh_chunk(
     settings: Res<MeshSettings>,
 ) {
     let pool = AsyncComputeTaskPool::get();
+
     for ChunkMeshEvent { coordinates } in reader.iter() {
-        let Some(chunk) = registry.get_chunk_at_mut(*coordinates) else {
-            continue;
-        };
+        if let Some(chunk) = registry.get_chunk_at_mut(*coordinates) {
+            chunk.set_busy(true);
 
-        chunk.set_busy(true);
+            let coordinates_clone = coordinates.clone();
+            let voxels_clone = chunk.clone_voxels();
+            let settings_clone = settings.clone();
+            let dimensions = chunk.get_dimensions();
 
-        let coordinates = coordinates.clone();
-        let voxels = chunk.clone_voxels();
-        let settings = settings.clone();
-        let dimensions = chunk.get_dimensions();
+            let task = pool.spawn(async move {
+                return (
+                    mesh(&voxels_clone, settings_clone, dimensions),
+                    coordinates_clone,
+                );
+            });
 
-        let task = pool.spawn(async move {
-            return (mesh(&voxels, settings, dimensions), coordinates);
-        });
-
-        commands.spawn(ChunkMeshTask(task));
+            commands.spawn(ChunkMeshTask(task));
+        }
     }
 }
 
