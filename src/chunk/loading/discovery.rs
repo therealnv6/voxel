@@ -53,10 +53,10 @@ pub fn load_chunks(
             let z = (center_chunk_z + z_offset) * chunk_size;
 
             let mesh_settings = mesh_settings.clone();
-            let chunk = registry.get_chunk_at([x, z]);
+            let locked_chunk = registry.get_chunk_at([x, z]);
 
             let task: Task<(Option<Mesh>, (i32, i32))> = thread_pool.spawn(async move {
-                let Ok(mut chunk) = chunk.lock() else {
+                let Ok(mut chunk) = locked_chunk.lock() else {
                     return (None, (x, z));
                 };
 

@@ -7,6 +7,9 @@ author = "Riven Zondervan <nosequel@protonmail.com>"
 [profile.dev.package."*"]
 opt-level = 3
 
+[profile.release]
+debug = true
+
 [dependencies]
 # bevy-specific crates and dependencies
 bevy-inspector-egui = "0.19.0"
@@ -30,11 +33,13 @@ noise = "0.8.2"
 rand = "0.8.5" # we're only really using this for noise generation
 rayon = "1.7.0"
 dynqueue = "0.3.0"
+crossbeam = "0.8.2"
+crossbeam-queue = "0.3.8"
 
 [dependencies.bevy]
 version = "0.11.0"
 features = [
   "bevy_pbr", 
   "multi-threaded", 
-  "dynamic_linking"
+  # "dynamic_linking"
 ]

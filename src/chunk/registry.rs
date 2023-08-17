@@ -53,11 +53,11 @@ impl ChunkRegistry {
             Self::get_chunk_center(coordinates),
         )));
 
-        let mut queue = super::loading::get_generation_queue();
+        let queue = super::loading::get_generation_queue();
 
         queue
             .queue
-            .push_back((chunk.clone(), (coordinates.0, coordinates.1)));
+            .push((chunk.clone(), (coordinates.0, coordinates.1)));
 
         self.chunks.insert(chunk_id, chunk.clone());
         return chunk;

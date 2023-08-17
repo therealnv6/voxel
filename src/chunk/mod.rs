@@ -90,7 +90,8 @@ impl Plugin for ChunkPlugin {
                 // these are chunk generation systems; they are relatively resource-intensive, thus
                 // they are slower than the 2 systems above. we might want to tweak these in
                 // the end as well.
-                loading::generation::process_generation.run_if(on_timer(delay_gen)),
+                loading::generation::fetch_queue,
+                loading::generation::process_generating_queue.run_if(on_timer(delay_gen)),
                 loading::generation::handle_gen_tasks.run_if(on_timer(delay_gen)),
             ),
         );
