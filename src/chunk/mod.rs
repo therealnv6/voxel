@@ -57,7 +57,7 @@ impl Plugin for ChunkPlugin {
                 occlusion_culling: true,
             })
             .insert_resource(DiscoverySettings {
-                discovery_radius: 1,
+                discovery_radius: 8,
             })
             .insert_resource(GenerationSettings {
                 frequency_scale: 0.03,

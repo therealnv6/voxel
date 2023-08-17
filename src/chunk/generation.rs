@@ -88,7 +88,7 @@ pub fn generate_voxels(
 #[inline]
 fn generate_color_from_heat(heat: f64) -> Color {
     const DARK_FACTOR: f64 = 0.3;
-    const SENSITIVITY: f64 = 15.0;
+    const SENSITIVITY: f64 = 5.0;
 
     let modified_heat = (heat * SENSITIVITY).max(0.0);
 

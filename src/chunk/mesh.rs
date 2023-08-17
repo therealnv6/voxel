@@ -112,7 +112,7 @@ pub fn mesh(
                     ]
                     .iter()
                     .enumerate()
-                    .filter(|(index, _)| {
+                    .filter(|(index, _)| 
                         // if occlusion culling is disabled, we can
                         // we can simply ignore this.
                         !settings.occlusion_culling
@@ -124,7 +124,7 @@ pub fn mesh(
                         // if the result is none and is solid, it means the face should
                         // get culled.
                         .is_none()
-                    })
+                    )
                     .flat_map(|(_, block)| block)
                     // Add base_vertex_index to each index to match vertex indices;
                     // we have to add this index to handle different locations.
@@ -165,21 +165,21 @@ pub fn get_voxel_face<'a>(
     (width, height, _): (u32, u32, u32),
 ) -> Option<&Voxel> {
     let coordinates = coordinates.into();
-    let IVec3 {
-        mut x,
-        mut y,
-        mut z,
-    } = coordinates.try_into().unwrap();
+    let UVec3 { x, y, z } = coordinates.try_into().unwrap(); // Use UVec3 instead of IVec3
 
-    match face {
-        VoxelFace::Front => z += 1,
-        VoxelFace::Back => z -= 1,
-        VoxelFace::Left => x -= 1,
-        VoxelFace::Right => x += 1,
-        VoxelFace::Up => y += 1,
-        VoxelFace::Down => y -= 1,
+    let (nx, ny, nz) = match face {
+        VoxelFace::Front => (x, y, z + 1),
+        VoxelFace::Back => (x, y, z - 1),
+        VoxelFace::Left => (x - 1, y, z),
+        VoxelFace::Right => (x + 1, y, z),
+        VoxelFace::Up => (x, y + 1, z),
+        VoxelFace::Down => (x, y - 1, z),
+    };
+
+    if nx < width && ny < height {
+        let index = nx + ny * (width) + nz * (width) * (height);
+        voxels.get(index as usize)
+    } else {
+        None // If the neighboring voxel is outside the bounds, consider it not solid
     }
-
-    let index = x + y * (width as i32) + z * (width as i32) * (height as i32);
-    voxels.get(index as usize)
 }
