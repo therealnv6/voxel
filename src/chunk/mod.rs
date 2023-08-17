@@ -70,7 +70,7 @@ impl Plugin for ChunkPlugin {
         });
 
         let delay = Duration::from_millis(DISCOVERY_DELAY_MILLIS);
-        let delay_gen = Duration::from_millis(150);
+        let delay_gen = Duration::from_millis(100);
 
         app.add_systems(
             Update,

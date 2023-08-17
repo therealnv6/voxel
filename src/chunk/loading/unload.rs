@@ -62,6 +62,7 @@ pub fn unload_distant_chunks(
         {
             // we have to re-mark it as dirty as it has to get re-rendered once it's within the
             // discovery radius again. otherwise, it will just appear as a blank chunk.
+
             let chunk = registry.get_chunk_at([*pos_x, *pos_z]);
             let Ok(mut chunk) = chunk.lock() else {
                 continue;

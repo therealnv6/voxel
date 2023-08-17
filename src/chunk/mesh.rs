@@ -90,33 +90,6 @@ impl Chunk {
                         // Adjust indices for each voxel
                         let base_vertex_index = all_vertices.len() as u32;
 
-                        // general indices, we're not handling this in the voxel so we can
-                        // potentially change up the meshing algorithm sometime to be
-                        // greedy meshing, although probably not. will potentially
-                        // overcomplicate things in the future in case we add other
-                        // functionality (texturing, etc)
-                        //
-                        // if anyone else reads this (probably not), read more about greedy
-                        // meshing here: https://0fps.net/2012/06/30/meshing-in-a-minecraft-game/
-                        let mut indices = [
-                            0, 2, 1, 0, 3, 2, // Front face
-                            1, 6, 5, 1, 2, 6, // Right face
-                            5, 7, 4, 5, 6, 7, // Back face
-                            4, 3, 0, 4, 7, 3, // Left face
-                            3, 6, 2, 3, 7, 6, // Top face
-                            4, 1, 5, 4, 0, 1, // Bottom face
-                        ]
-                        .iter()
-                        // Add base_vertex_index to each index to match vertex indices;
-                        // we have to add this index to handle different locations.
-                        .map(|index| index + base_vertex_index)
-                        // collect as a Vec<u32>, we have to return a u32 or a u16, and I
-                        // decided to opt for a u32. Perhaps we (c/sh)ould move this to a u16?
-                        // I'm not entirely sure what the difference is between u16 and u32
-                        // indices; is it just the memory usage? I'll do some more
-                        // investigation sometime.
-                        .collect::<Vec<u32>>();
-
                         // not entirely sure why, but `VoxelFace::Back` and `VoxelFace::Top` have to
                         // be the other way around in comparison to the way we declared the indices,
                         // otherwise the wrong sides will be culled.
@@ -129,37 +102,49 @@ impl Chunk {
                             VoxelFace::Down,
                         ];
 
-                        if settings.occlusion_culling {
-                            let face_index_count = 6; // number of indices per face
-                            voxel_faces
-                                .iter()
-                                // we need the index for getting the correct index for removing the
-                                // indices, so we're enumerating over the faces.
-                                .enumerate()
-                                .filter_map(|(index, face)| {
-                                    // get the neighboring voxel depending on the face
-                                    self.get_voxel_face([x, y, z], face.clone())
-                                        // i genuinely didn't know you could call .filter() on an
-                                        // Option<T>, but well, this works.
-                                        .filter(|voxel| voxel.is_solid())
-                                        .map(|_| {
-                                            index * face_index_count..(index + 1) * face_index_count
-                                        })
-                                })
-                                // flatten from the Option<T>, as we only need the ones with an actual
-                                // value. the other ones can simply just be ignored.
-                                .flatten()
-                                // reverse the order to avoid shifting errors, as removing from the
-                                // start of the vector will simply shift the other indices down, thus
-                                // the indices being incorrect.
-                                .rev()
-                                // actually remove the indices; these are the indices that are occluded
-                                // thus should be removed from the indices before they are added to the
-                                // all_indices variable.
-                                .for_each(|idx| {
-                                    indices.remove(idx);
-                                });
-                        }
+                        // general indices, we're not handling this in the voxel so we can
+                        // potentially change up the meshing algorithm sometime to be
+                        // greedy meshing, although probably not. will potentially
+                        // overcomplicate things in the future in case we add other
+                        // functionality (texturing, etc)
+                        //
+                        // if anyone else reads this (probably not), read more about greedy
+                        // meshing here: https://0fps.net/2012/06/30/meshing-in-a-minecraft-game/
+
+                        let indices = [
+                            [0, 2, 1, 0, 3, 2], // Front face
+                            [1, 6, 5, 1, 2, 6], // Right face
+                            [5, 7, 4, 5, 6, 7], // Back face
+                            [4, 3, 0, 4, 7, 3], // Left face
+                            [3, 6, 2, 3, 7, 6], // Top face
+                            [4, 1, 5, 4, 0, 1], // Bottom face
+                        ]
+                        .iter()
+                        .enumerate()
+                        .filter(|(index, _)| {
+                            // if occlusion culling is disabled, we can
+                            // we can simply ignore this.
+                            !settings.occlusion_culling
+                                // if occlusion culling *should* happen, we will handle this here
+                                || self
+                                    .get_voxel_face([x, y, z], voxel_faces[*index].clone())
+                                    // .filter() on the Option<T> to see if the face is solid, if
+                                    // it isn't, we can ignore this regardless. 
+                                    .filter(|voxel| voxel.is_solid())
+                                    // if the result is none and is solid, it means the face should
+                                    // get culled. 
+                                    .is_none()
+                        })
+                        .flat_map(|(_, block)| block)
+                        // Add base_vertex_index to each index to match vertex indices;
+                        // we have to add this index to handle different locations.
+                        .map(|index| index + base_vertex_index)
+                        // collect as a Vec<u32>, we have to return a u32 or a u16, and I
+                        // decided to opt for a u32. Perhaps we (c/sh)ould move this to a u16?
+                        // I'm not entirely sure what the difference is between u16 and u32
+                        // indices; is it just the memory usage? I'll do some more
+                        // investigation sometime.
+                        .collect::<Vec<u32>>();
 
                         all_indices.extend(indices);
                         all_vertices.extend(vertices);

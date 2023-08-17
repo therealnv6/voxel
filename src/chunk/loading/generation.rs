@@ -20,7 +20,7 @@ pub struct FetchQueueTask(Task<Option<&'static SegQueue<ChunkQueueEntry>>>);
 #[inline]
 fn generate_color_from_heat(heat: f64) -> Color {
     const DARK_FACTOR: f64 = 0.3;
-    const SENSITIVITY: f64 = 5000.0;
+    const SENSITIVITY: f64 = 15.0;
 
     let modified_heat = (heat * SENSITIVITY).max(0.0);
 
@@ -45,6 +45,15 @@ pub fn fetch_queue(mut commands: Commands) {
     });
 
     commands.spawn(FetchQueueTask(task));
+}
+
+pub fn handle_gen_tasks(mut commands: Commands, tasks: Query<(Entity, &ComputeGen)>) {
+    tasks
+        .iter()
+        .filter(|(_, ComputeGen(task))| task.is_finished())
+        .for_each(|(entity, _)| {
+            commands.entity(entity).remove::<ComputeGen>();
+        });
 }
 
 pub fn process_generating_queue(
@@ -78,12 +87,10 @@ pub fn process_generating_queue(
 
                 let thread_pool = AsyncComputeTaskPool::get();
 
-                for (chunk, _) in
-                    (0..entries.len().min(NUM_PARALLEL_CHUNKS)).flat_map(|_| entries.pop())
-                {
-                    let chunk = chunk.clone();
+                let mut amplitudes = vec![1.0; octaves.try_into().unwrap()]; // Precompute amplitudes
 
-                    let mut amplitudes = vec![1.0; octaves.try_into().unwrap()]; // Precompute amplitudes
+                entries.pop().filter(|(chunk, _)| {
+                    let chunk = chunk.clone();
 
                     for i in 1..octaves {
                         amplitudes.insert(i as usize, amplitudes[(i - 1) as usize] * persistence);
@@ -101,16 +108,18 @@ pub fn process_generating_queue(
                             let depth_scale = frequency_scale / depth as f64;
 
                             for z in 0..depth {
+                                let z_coord =
+                                    (z as f64 + chunk.world_position.1 as f64) * frequency_scale;
+
+                                let z_coord_with_offset =
+                                    z_coord + (z as f64 / depth as f64) * depth_scale;
+
                                 for x in 0..width {
                                     let x_coord = (x as f64 + chunk.world_position.0 as f64)
-                                        * frequency_scale;
-                                    let z_coord = (z as f64 + chunk.world_position.1 as f64)
                                         * frequency_scale;
 
                                     let x_coord_with_offset =
                                         x_coord + (x as f64 / width as f64) * width_scale;
-                                    let z_coord_with_offset =
-                                        z_coord + (z as f64 / depth as f64) * depth_scale;
 
                                     for y in 0..height {
                                         let y_coord = y as f64 * frequency_scale;
@@ -152,20 +161,11 @@ pub fn process_generating_queue(
                             chunk.set_generated(true);
                         }
                     });
-
                     commands.spawn(ComputeGen(task));
-                }
+
+                    true
+                });
             }
         }
     });
-}
-
-pub fn handle_gen_tasks(mut commands: Commands, tasks: Query<(Entity, &ComputeGen)>) {
-    tasks
-        .iter()
-        .take(2)
-        .filter(|(_, ComputeGen(task))| task.is_finished())
-        .for_each(|(entity, _)| {
-            commands.entity(entity).remove::<ComputeGen>();
-        });
 }
