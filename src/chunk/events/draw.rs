@@ -1,11 +1,13 @@
-use crate::chunk::{registry::Coordinates, ChunkEntity};
+use crate::chunk::{
+    registry::{ChunkRegistry, Coordinates},
+    ChunkEntity,
+};
 
 use bevy::prelude::*;
 
 #[derive(Event)]
 pub struct ChunkDrawEvent {
-    pub mesh: Handle<Mesh>,
-    pub position: Coordinates,
+    pub coordinates: Coordinates,
 }
 
 pub fn draw_chunks(
@@ -13,27 +15,34 @@ pub fn draw_chunks(
     mut reader: EventReader<ChunkDrawEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut cached_standard_material: Local<Option<Handle<StandardMaterial>>>,
+    mut registry: ResMut<ChunkRegistry>,
 ) {
     let material = cached_standard_material
         .get_or_insert_with(|| materials.add(StandardMaterial::default()))
         .clone();
 
     for ChunkDrawEvent {
-        mesh,
-        position: Coordinates(x, z),
+        coordinates: Coordinates { x, y, z },
     } in reader.iter()
     {
-        let (x, z) = (*x, *z);
-        let transform = Transform::from_xyz(x as f32, 0.0, z as f32);
+        let (x, y, z) = (*x, *y, *z);
+        let Some(chunk) = registry.get_chunk_at_mut([x, y, z]) else {
+            continue;
+        };
+
+        if chunk.get_mesh().is_none() {}
+
+        let transform = Transform::from_xyz(x as f32, y as f32, z as f32);
         let bundle = PbrBundle {
             transform,
-            mesh: mesh.clone(),
+            mesh: chunk.get_mesh().expect("Didn't set mesh properly... what?"),
             material: material.clone(),
             ..Default::default()
         };
 
+        chunk.set_drawn(true);
         commands.spawn(bundle).insert(ChunkEntity {
-            position: (x, z).into(),
+            position: (x, y, z).into(),
         });
     }
 }

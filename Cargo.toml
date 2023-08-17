@@ -35,6 +35,7 @@ rayon = "1.7.0"
 dynqueue = "0.3.0"
 crossbeam = "0.8.2"
 crossbeam-queue = "0.3.8"
+enumset = "1.1.2"
 
 [dependencies.bevy]
 version = "0.11.0"

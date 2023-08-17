@@ -34,6 +34,11 @@ pub fn inspector_ui(
                         .text("Discovery Radius"),
                 );
 
+                ui.add(
+                    Slider::new(&mut discovery_settings.discovery_radius_height, 1..=40)
+                        .text("Discovery Height Radius"),
+                );
+
                 if ui.button("Rebuild Chunks").clicked() {
                     // loop over all of the chunks to mark them as dirty
                     chunk_registry

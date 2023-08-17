@@ -31,6 +31,9 @@ pub fn mesh_chunk(
             chunk.set_busy(true);
 
             let coordinates_clone = coordinates.clone();
+
+            // i want to find a way to avoid having to clone the voxels to pass into the mesh
+            // function, any ideas?
             let voxels_clone = chunk.clone_voxels();
             let settings_clone = settings.clone();
             let dimensions = chunk.get_dimensions();
@@ -68,12 +71,11 @@ pub fn process_chunk_meshing(
 
         let mesh_id = meshes.add(mesh);
 
+        chunk.set_mesh(mesh_id.clone());
+
         chunk.set_dirty(false);
         chunk.set_busy(false);
 
-        writer.send(ChunkDrawEvent {
-            mesh: mesh_id,
-            position: coordinates,
-        });
+        writer.send(ChunkDrawEvent { coordinates });
     });
 }

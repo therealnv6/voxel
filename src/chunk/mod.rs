@@ -1,10 +1,17 @@
-use bevy::prelude::*;
+use std::time::Duration;
+
+use bevy::{
+    input::common_conditions::input_toggle_active, prelude::*, time::common_conditions::on_timer,
+};
 use noise::OpenSimplex;
 use rand::Rng;
 
 use self::{
     event::ChunkCreateEvent,
-    events::{draw::ChunkDrawEvent, gen::ChunkGenerateEvent, mesh::ChunkMeshEvent},
+    events::{
+        discovery::ChunkDiscoveryEvent, draw::ChunkDrawEvent, gen::ChunkGenerateEvent,
+        mesh::ChunkMeshEvent,
+    },
     registry::{ChunkRegistry, Coordinates},
 };
 
@@ -32,8 +39,8 @@ pub struct MeshSettings {
 
 #[derive(Resource, Clone)]
 pub struct DiscoverySettings {
-    // we don't need much more than an u8 for the discovery radius.
     pub discovery_radius: i8,
+    pub discovery_radius_height: i8,
 }
 
 #[derive(Resource, Clone)]
@@ -57,17 +64,19 @@ impl Plugin for ChunkPlugin {
                 occlusion_culling: true,
             })
             .insert_resource(DiscoverySettings {
-                discovery_radius: 8,
+                discovery_radius: 4,
+                discovery_radius_height: 2,
             })
             .insert_resource(GenerationSettings {
                 frequency_scale: 0.03,
                 amplitude_scale: 20.0,
                 threshold: 0.4,
-                octaves: 6,
+                octaves: 2,
                 persistence: 0.5,
             })
             .add_event::<ChunkCreateEvent>()
             .add_event::<ChunkMeshEvent>()
+            .add_event::<ChunkDiscoveryEvent>()
             .add_event::<ChunkGenerateEvent>()
             .add_event::<ChunkDrawEvent>()
             .add_systems(
@@ -79,9 +88,10 @@ impl Plugin for ChunkPlugin {
                     events::gen::generate_chunk,
                     events::gen::process_chunk_generation,
                     events::draw::draw_chunks,
-                    // these are both discovery systems
-                    discovery::load_chunks,
-                    discovery::unload_distant_chunks,
+                    events::discovery::handle_chunk_discovery
+                        .run_if(input_toggle_active(true, KeyCode::L)),
+                    events::discovery::process_discovery_tasks,
+                    discovery::unload_distant_chunks.run_if(on_timer(Duration::from_millis(500))),
                 ),
             );
     }

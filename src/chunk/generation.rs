@@ -1,4 +1,4 @@
-use crate::chunk::{registry::Coordinates, voxel::Voxel, GenerationSettings};
+use crate::chunk::{voxel::Voxel, GenerationSettings};
 use bevy::prelude::*;
 
 use noise::{NoiseFn, OpenSimplex};
@@ -6,7 +6,11 @@ use noise::{NoiseFn, OpenSimplex};
 pub fn generate_voxels(
     settings: GenerationSettings,
     simplex: OpenSimplex,
-    Coordinates(world_pos_x, world_pos_z): Coordinates,
+    IVec3 {
+        x: world_pos_x,
+        y: world_pos_y,
+        z: world_pos_z,
+    }: IVec3,
     (width, height, depth): (u32, u32, u32),
 ) -> Vec<Voxel> {
     let mut voxels: Vec<Voxel> = Vec::new();
@@ -32,7 +36,7 @@ pub fn generate_voxels(
     let mut amplitudes = vec![1.0; octaves.try_into().unwrap()]; // Precompute amplitudes
 
     let width_scale = frequency_scale / width as f64;
-    let depth_scale = frequency_scale / depth as f64;
+    let height_scale = frequency_scale / height as f64; // Add height_scale
 
     for i in 1..octaves {
         amplitudes.insert(i as usize, amplitudes[(i - 1) as usize] * persistence);
@@ -40,8 +44,7 @@ pub fn generate_voxels(
 
     for z in 0..depth {
         let z_coord = (z as f64 + world_pos_z as f64) * frequency_scale;
-
-        let z_coord_with_offset = z_coord + (z as f64 / depth as f64) * depth_scale;
+        let z_coord_with_offset = z_coord + (z as f64 / depth as f64) * width_scale;
 
         for x in 0..width {
             let x_coord = (x as f64 + world_pos_x as f64) * frequency_scale;
@@ -49,15 +52,17 @@ pub fn generate_voxels(
             let x_coord_with_offset = x_coord + (x as f64 / width as f64) * width_scale;
 
             for y in 0..height {
-                let y_coord = y as f64 * frequency_scale;
+                let y_coord = (y as f64 + world_pos_y as f64) * frequency_scale; // Apply world_pos_y
+
+                let y_coord_with_offset = y_coord + (y as f64 / height as f64) * height_scale; // Apply height_scale
 
                 let mut noise_value = 0.0;
                 for i in 0..octaves {
                     let p = [
                         x_coord_with_offset,
-                        y_coord,
+                        y_coord_with_offset, // Use y_coord_with_offset
                         z_coord_with_offset,
-                        (i as f64) * 10.0, // Add an offset to create variation in noise patterns
+                        (i as f64) * 10.0,
                     ];
 
                     noise_value += amplitudes[i as usize] * simplex.get(p);

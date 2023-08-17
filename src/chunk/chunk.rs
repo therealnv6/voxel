@@ -1,4 +1,5 @@
-use bevy::prelude::{UVec3};
+use bevy::prelude::{Handle, Mesh, UVec3};
+use enumset::{enum_set, EnumSet, EnumSetType};
 
 use super::{registry::Coordinates, voxel::Voxel};
 /// Represents the different faces of a voxel.
@@ -12,6 +13,15 @@ pub enum VoxelFace {
     Down,
 }
 
+#[derive(EnumSetType, Debug)]
+pub enum ChunkFlags {
+    Generated,
+    Dirty,
+    Drawn,
+    Busy,
+    Meshed,
+}
+
 /// Represents a chunk of voxels in a 3D space.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Chunk {
@@ -23,11 +33,10 @@ pub struct Chunk {
     pub height: u32,
     /// The depth of the chunk in voxels.
     pub depth: u32,
-    /// Indicates whether the chunk has been modified and needs an update.
-    pub dirty: bool,
-    /// Whether the chunk has been generated or not.
-    pub generated: bool,
-    pub busy: bool,
+    /// mesh used for rendering
+    pub mesh: Option<Handle<Mesh>>,
+    /// the flags of the chunk; this is mostly to indicate whether the chunk is busy or not.
+    pub flags: EnumSet<ChunkFlags>,
     /// The world position of the chunk.
     pub world_position: Coordinates,
 }
@@ -57,9 +66,8 @@ impl Chunk {
             height,
             depth,
             world_position,
-            generated: false,
-            dirty: false,
-            busy: false,
+            mesh: None,
+            flags: enum_set!(ChunkFlags::Dirty),
         };
 
         return chunk;
@@ -133,47 +141,64 @@ impl Chunk {
         (self.width, self.height, self.depth)
     }
 
-    /// Sets whether the chunk has been generated.
-    ///
-    /// # Parameters
-    ///
-    /// - `gen`: A boolean indicating whether the chunk has been generated.
-    pub fn set_generated(&mut self, gen: bool) {
-        self.generated = gen;
+    pub fn set_mesh(&mut self, mesh: Handle<Mesh>) {
+        self.mesh = Some(mesh);
+        self.flags.insert(ChunkFlags::Meshed);
     }
 
-    /// Checks if the chunk has been generated.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the chunk has been generated, `false` otherwise.
+    pub fn get_mesh(&self) -> Option<Handle<Mesh>> {
+        return self.mesh.clone();
+    }
+
     pub fn is_generated(&self) -> bool {
-        self.generated
+        self.flags.contains(ChunkFlags::Generated)
     }
 
-    /// Checks if the chunk has been modified.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the chunk has been modified, `false` otherwise.
     pub fn is_dirty(&self) -> bool {
-        self.dirty
-    }
-
-    /// Sets the dirty status of the chunk.
-    ///
-    /// # Parameters
-    ///
-    /// - `dirty`: A boolean indicating whether the chunk is dirty (modified).
-    pub fn set_dirty(&mut self, dirty: bool) {
-        self.dirty = dirty;
+        self.flags.contains(ChunkFlags::Dirty)
     }
 
     pub fn is_busy(&self) -> bool {
-        self.busy
+        self.flags.contains(ChunkFlags::Busy)
+    }
+
+    pub fn is_drawn(&self) -> bool {
+        self.flags.contains(ChunkFlags::Drawn)
+    }
+
+    pub fn set_generated(&mut self, gen: bool) {
+        if gen {
+            self.flags |= ChunkFlags::Generated;
+        } else {
+            self.flags &= !ChunkFlags::Generated;
+        }
+    }
+
+    pub fn set_dirty(&mut self, dirty: bool) {
+        if dirty {
+            self.flags |= ChunkFlags::Dirty;
+        } else {
+            self.flags &= !ChunkFlags::Dirty;
+        }
     }
 
     pub fn set_busy(&mut self, busy: bool) {
-        self.busy = busy;
+        if busy {
+            self.flags |= ChunkFlags::Busy;
+        } else {
+            self.flags &= !ChunkFlags::Busy;
+        }
+    }
+
+    pub fn set_drawn(&mut self, drawn: bool) {
+        if drawn {
+            self.flags |= ChunkFlags::Drawn;
+        } else {
+            self.flags &= !ChunkFlags::Drawn;
+        }
+    }
+
+    pub fn get_flags(&self) -> EnumSet<ChunkFlags> {
+        self.flags
     }
 }

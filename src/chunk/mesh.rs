@@ -1,10 +1,10 @@
 use bevy::{
-    prelude::{IVec3, Mesh, UVec3},
+    prelude::{Mesh, UVec3},
     render::{mesh::Indices, render_resource::PrimitiveTopology},
 };
 
 use super::{
-    chunk::{VoxelFace},
+    chunk::VoxelFace,
     voxel::{Voxel, VoxelMeshData},
     MeshSettings,
 };
@@ -112,7 +112,7 @@ pub fn mesh(
                     ]
                     .iter()
                     .enumerate()
-                    .filter(|(index, _)| 
+                    .filter(|(index, _)|
                         // if occlusion culling is disabled, we can
                         // we can simply ignore this.
                         !settings.occlusion_culling
