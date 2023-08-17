@@ -27,6 +27,7 @@ pub struct Chunk {
     pub dirty: bool,
     /// Whether the chunk has been generated or not.
     pub generated: bool,
+    pub busy: bool,
     /// The world position of the chunk.
     pub world_position: Coordinates,
 }
@@ -58,40 +59,10 @@ impl Chunk {
             world_position,
             generated: false,
             dirty: false,
+            busy: false,
         };
 
         return chunk;
-    }
-
-    /// Retrieves the voxel on a specified face of another voxel, if present.
-    ///
-    /// # Parameters
-    ///
-    /// - `coordinates`: The coordinates of the voxel.
-    /// - `face`: The face of the voxel to retrieve.
-    ///
-    /// # Returns
-    ///
-    /// A reference to the voxel on the specified face, if within the chunk's bounds.
-    pub fn get_voxel_face(&self, coordinates: impl Into<UVec3>, face: VoxelFace) -> Option<&Voxel> {
-        let coordinates = coordinates.into();
-
-        let IVec3 {
-            mut x,
-            mut y,
-            mut z,
-        } = coordinates.try_into().unwrap();
-
-        match face {
-            VoxelFace::Front => z += 1,
-            VoxelFace::Back => z -= 1,
-            VoxelFace::Left => x -= 1,
-            VoxelFace::Right => x += 1,
-            VoxelFace::Up => y += 1,
-            VoxelFace::Down => y -= 1,
-        }
-
-        self.get_voxel((x as u32, y as u32, z as u32))
     }
 
     /// Retrieves a reference to a voxel at the specified position.
@@ -108,10 +79,14 @@ impl Chunk {
 
         if x < self.width && y < self.height && z < self.depth {
             let index = self.get_index([x, y, z]);
-            Some(&self.voxels[index as usize])
+            return self.voxels.get(index as usize);
         } else {
             None
         }
+    }
+
+    pub fn clone_voxels(&self) -> Vec<Voxel> {
+        return self.voxels.clone();
     }
 
     /// Sets the value of a voxel at the specified position.
@@ -126,11 +101,12 @@ impl Chunk {
         if x < self.width && y < self.height && z < self.depth {
             let index = self.get_index([x, y, z]);
             self.voxels[index as usize] = voxel;
-
-            // we should mark the chunk as dirty, as this will let the systems know the chunk has
-            // to get re-mashed.
-            self.dirty = true;
         }
+    }
+
+    pub fn set_voxels(&mut self, voxels: impl Into<Vec<Voxel>>) {
+        let voxels = voxels.into();
+        self.voxels = voxels;
     }
 
     /// Calculates the linear index in the voxel array for a given 3D position.
@@ -191,5 +167,13 @@ impl Chunk {
     /// - `dirty`: A boolean indicating whether the chunk is dirty (modified).
     pub fn set_dirty(&mut self, dirty: bool) {
         self.dirty = dirty;
+    }
+
+    pub fn is_busy(&self) -> bool {
+        self.busy
+    }
+
+    pub fn set_busy(&mut self, busy: bool) {
+        self.busy = busy;
     }
 }

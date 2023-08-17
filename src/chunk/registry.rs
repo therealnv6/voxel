@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use super::chunk::Chunk;
 use bevy::{prelude::Resource, utils::HashMap};
 
@@ -9,7 +7,7 @@ use bevy::{prelude::Resource, utils::HashMap};
 /// as well as convert between chunk coordinates and IDs for storage and indexing.
 #[derive(Debug, Clone, Resource)]
 pub struct ChunkRegistry {
-    chunks: HashMap<i32, Arc<Mutex<Chunk>>>,
+    chunks: HashMap<i32, Chunk>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -17,6 +15,7 @@ pub struct Coordinates(pub i32, pub i32);
 
 impl ChunkRegistry {
     pub const CHUNK_SIZE: usize = 16;
+    pub const CHUNK_HEIGHT: usize = 128;
     pub const CHUNK_GRID_SIZE: i32 = 1024;
 
     pub fn new() -> Self {
@@ -37,30 +36,25 @@ impl ChunkRegistry {
     /// # Returns
     ///
     /// An Arc wrapped in a Mutex, representing the requested chunk.
-    pub fn get_chunk_at(&mut self, coordinates: impl Into<Coordinates>) -> Arc<Mutex<Chunk>> {
+    pub fn get_chunk_at(&self, coordinates: impl Into<Coordinates>) -> Option<&Chunk> {
         let coordinates = coordinates.into();
         let chunk_id = Self::domain_to_id(coordinates);
 
-        if let Some(existing_chunk) = self.chunks.get(&chunk_id) {
-            return existing_chunk.clone();
-        }
+        return self.chunks.get(&chunk_id);
+    }
 
-        let chunk = Arc::new(Mutex::new(Chunk::new(
-            Self::CHUNK_SIZE as u32,
-            128,
-            Self::CHUNK_SIZE as u32,
-            // Get the center of the chunk.
-            Self::get_chunk_center(coordinates),
-        )));
+    pub fn get_chunk_at_mut(&mut self, coordinates: impl Into<Coordinates>) -> Option<&mut Chunk> {
+        let coordinates = coordinates.into();
+        let chunk_id = Self::domain_to_id(coordinates);
 
-        let queue = super::loading::get_generation_queue();
+        return self.chunks.get_mut(&chunk_id);
+    }
 
-        queue
-            .queue
-            .push((chunk.clone(), (coordinates.0, coordinates.1)));
+    pub fn push_chunk_at(&mut self, coordinates: impl Into<Coordinates>, chunk: Chunk) {
+        let coordinates = coordinates.into();
+        let chunk_id = Self::domain_to_id(coordinates);
 
-        self.chunks.insert(chunk_id, chunk.clone());
-        return chunk;
+        self.chunks.insert(chunk_id, chunk);
     }
 
     /// Retrieves an iterator over all the chunks stored in the registry.
@@ -69,9 +63,9 @@ impl ChunkRegistry {
     ///
     /// An iterator over the stored chunks.
     pub fn get_all_chunks(
-        &self,
-    ) -> bevy::utils::hashbrown::hash_map::Values<'_, i32, Arc<std::sync::Mutex<Chunk>>> {
-        return self.chunks.values();
+        &mut self,
+    ) -> bevy::utils::hashbrown::hash_map::ValuesMut<'_, i32, Chunk> {
+        return self.chunks.values_mut();
     }
 
     /// Converts 3D chunk coordinates to a unique identifier.

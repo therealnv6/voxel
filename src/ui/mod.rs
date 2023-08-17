@@ -14,7 +14,7 @@ pub fn inspector_ui(
     mut discovery_settings: ResMut<DiscoverySettings>,
     directional_light_entities: Query<Entity, With<DirectionalLight>>,
     pbr_entities: Query<Entity, With<Handle<StandardMaterial>>>,
-    chunk_registry: Res<ChunkRegistry>,
+    mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     let mut ctx = context.single_mut();
     ctx.get_mut().set_visuals(egui::Visuals {
@@ -37,14 +37,9 @@ pub fn inspector_ui(
                 if ui.button("Rebuild Chunks").clicked() {
                     // loop over all of the chunks to mark them as dirty
                     chunk_registry
-                        // gets all of the chunks
                         .get_all_chunks()
                         .into_iter()
-                        // lock all of the chunks, this is then flatly mapped, meaning every lock
-                        // result that is not Ok(T) will be disposed.
-                        .flat_map(|chunk| chunk.lock())
-                        // actually mark them as dirty; this is straightforward.
-                        .for_each(|mut chunk| chunk.set_dirty(true));
+                        .for_each(|chunk| chunk.set_dirty(true));
                 }
 
                 if ui.button("Remove PBR Entities").clicked() {
