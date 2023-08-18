@@ -21,6 +21,7 @@ pub fn draw_chunks(
     mut registry: ResMut<ChunkRegistry>,
 ) {
     let material = material_cache.get_or_insert_with(|| materials.add(StandardMaterial::default()));
+
     for ChunkDrawEvent {
         coordinates: Coordinates { x, y, z },
     } in reader.iter()
@@ -33,7 +34,7 @@ pub fn draw_chunks(
 
         if let Some(mesh) = chunk.get_mesh() {
             let tween = Tween::new(
-                EaseFunction::QuadraticInOut,
+                EaseFunction::QuadraticIn,
                 Duration::from_millis(550),
                 TransformPositionLens {
                     start: Vec3::new(x as f32, y as f32 - 12.0, z as f32),
@@ -41,7 +42,7 @@ pub fn draw_chunks(
                 },
             );
 
-            let bundle = PbrBundle {
+            let bundle = MaterialMeshBundle {
                 mesh,
                 material: material.clone(),
                 ..Default::default()

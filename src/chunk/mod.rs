@@ -80,14 +80,14 @@ impl Plugin for ChunkPlugin {
             .add_event::<ChunkGenerateEvent>()
             .add_event::<ChunkDrawEvent>()
             .add_systems(
-                Update,
+                PreUpdate,
                 (
-                    event::create_chunk,
-                    events::mesh::mesh_chunk,
+                    event::create_chunk.run_if(on_event::<ChunkCreateEvent>()),
+                    events::draw::draw_chunks.run_if(on_event::<ChunkDrawEvent>()),
+                    events::gen::generate_chunk.run_if(on_event::<ChunkGenerateEvent>()),
+                    events::mesh::mesh_chunk.run_if(on_event::<ChunkMeshEvent>()),
                     events::mesh::process_chunk_meshing,
-                    events::gen::generate_chunk,
                     events::gen::process_chunk_generation,
-                    events::draw::draw_chunks,
                     events::discovery::handle_chunk_discovery
                         .run_if(input_toggle_active(true, KeyCode::L)),
                     events::discovery::process_discovery_tasks,

@@ -1,3 +1,5 @@
+use std::sync::{Arc, RwLock};
+
 use bevy::prelude::*;
 use bevy_tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
@@ -5,12 +7,13 @@ use futures_lite::future;
 use crate::chunk::{
     mesh::mesh,
     registry::{ChunkRegistry, Coordinates},
+    voxel::Voxel,
     MeshSettings,
 };
 
 use super::draw::ChunkDrawEvent;
 
-#[derive(Event)]
+#[derive(Event, Clone)]
 pub struct ChunkMeshEvent {
     pub coordinates: Coordinates,
 }
@@ -26,8 +29,34 @@ pub fn mesh_chunk(
 ) {
     let pool = AsyncComputeTaskPool::get();
 
-    for ChunkMeshEvent { coordinates } in reader.iter() {
+    for event in reader.iter() {
+        let ChunkMeshEvent { coordinates } = event;
+
         let coordinates = *coordinates;
+        let adjacent = registry.get_adjacent_chunks(coordinates);
+
+        let adjacent_voxels = adjacent
+            .iter()
+            .map(|chunk| {
+                if let Some(chunk) = chunk {
+                    chunk.get_voxels()
+                } else {
+                    let height = ChunkRegistry::CHUNK_HEIGHT;
+                    let width = ChunkRegistry::CHUNK_SIZE;
+
+                    Arc::new(RwLock::new(vec![
+                        Voxel {
+                            is_solid: true,
+                            size: 1.0,
+                            color: Color::default()
+                        };
+                        (width * height * width)
+                            .try_into()
+                            .expect("Size doesn't fit")
+                    ]))
+                }
+            })
+            .collect::<Vec<_>>();
 
         if let Some(chunk) = registry.get_chunk_at_mut(coordinates) {
             chunk.set_busy(true);
@@ -39,6 +68,11 @@ pub fn mesh_chunk(
 
             let task = pool.spawn(async move {
                 let voxels = binding.read();
+                let adjacent_voxels = adjacent_voxels
+                    .iter()
+                    .flat_map(|voxel_set| voxel_set.read())
+                    .map(|voxel_set| voxel_set.to_vec())
+                    .collect::<Vec<_>>();
 
                 // this looks a bit shit, but hey it works.
                 let value = (
@@ -48,6 +82,7 @@ pub fn mesh_chunk(
                         } else {
                             vec![]
                         },
+                        adjacent_voxels,
                         settings,
                         dimensions,
                     ),
@@ -69,6 +104,8 @@ pub fn process_chunk_meshing(
     mut meshes: ResMut<Assets<Mesh>>,
     mut writer: EventWriter<ChunkDrawEvent>,
 ) {
+    let mut events = Vec::new();
+
     tasks.iter_mut().for_each(|(entity, mut task)| {
         let task = &mut task.0;
         let Some((mesh, coordinates)) = future::block_on(future::poll_once(task)) else {
@@ -88,6 +125,8 @@ pub fn process_chunk_meshing(
         chunk.set_dirty(false);
         chunk.set_busy(false);
 
-        writer.send(ChunkDrawEvent { coordinates });
+        events.push(ChunkDrawEvent { coordinates });
     });
+
+    writer.send_batch(events);
 }

@@ -1,3 +1,4 @@
+
 use bevy::prelude::*;
 use bevy_tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
@@ -64,8 +65,10 @@ pub fn process_chunk_generation(
     mut commands: Commands,
     mut tasks: Query<(Entity, &mut ChunkGenerationTask)>,
     mut registry: ResMut<ChunkRegistry>,
-    mut mesh_writer: EventWriter<ChunkMeshEvent>,
+    mut writer: EventWriter<ChunkMeshEvent>,
 ) {
+    let mut to_emit = Vec::new();
+
     tasks.iter_mut().for_each(|(entity, mut task)| {
         let task = &mut task.0;
         let Some((coordinates, voxels)) = future::block_on(future::poll_once(task)) else {
@@ -81,6 +84,8 @@ pub fn process_chunk_generation(
         chunk.set_voxels(voxels);
         chunk.set_generated(true);
 
-        mesh_writer.send(ChunkMeshEvent { coordinates });
+        to_emit.push(ChunkMeshEvent { coordinates });
     });
+
+    writer.send_batch(to_emit);
 }

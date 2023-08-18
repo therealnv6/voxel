@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
+use rayon::prelude::*;
 
 use crate::chunk::{
     chunk::ChunkFlags,
@@ -68,19 +69,21 @@ fn spawn_discovery_task(
     let pool = AsyncComputeTaskPool::get();
 
     pool.spawn(async move {
-        let mut sets: Vec<Coordinates> = Vec::new();
-
-        for x_offset in -radius..=radius {
-            for y_offset in -radius_height..=radius_height {
-                for z_offset in -radius..=radius {
-                    let x = (center_chunk_x + x_offset) * chunk_size as i32;
-                    let y = (center_chunk_y + y_offset) * chunk_height as i32;
-                    let z = (center_chunk_z + z_offset) * chunk_size as i32;
-
-                    sets.push((x, y, z).into());
-                }
-            }
-        }
+        let sets: Vec<Coordinates> = (-radius..=radius)
+            .into_par_iter()
+            .flat_map(|x_offset| {
+                (-radius_height..=radius_height)
+                    .flat_map(move |y_offset| {
+                        (-radius..=radius).map(move |z_offset| {
+                            let x = (center_chunk_x + x_offset) * chunk_size as i32;
+                            let y = (center_chunk_y + y_offset) * chunk_height as i32;
+                            let z = (center_chunk_z + z_offset) * chunk_size as i32;
+                            (x, y, z).into()
+                        })
+                    })
+                    .collect::<Vec<Coordinates>>()
+            })
+            .collect();
 
         sets
     })

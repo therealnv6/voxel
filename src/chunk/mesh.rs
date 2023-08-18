@@ -45,6 +45,7 @@ impl Voxel {
 
 pub fn mesh(
     voxels: Vec<Voxel>,
+    adjacent_voxels: Vec<Vec<Voxel>>,
     settings: MeshSettings,
     UVec3 {
         x: width,
@@ -65,10 +66,28 @@ pub fn mesh(
             for z in 0..depth {
                 let index = x + y * width + z * width * height;
                 if let Some(voxel) = voxels.get(index as usize) {
+                    // not entirely sure why, but `VoxelFace::Back` and `VoxelFace::Top` have to
+                    // be the other way around in comparison to the way we declared the indices,
+                    // otherwise the wrong sides will be culled.
+                    let voxel_faces = [
+                        VoxelFace::Back,
+                        VoxelFace::Right,
+                        VoxelFace::Front,
+                        VoxelFace::Left,
+                        VoxelFace::Up,
+                        VoxelFace::Down,
+                    ];
+
+                    let fully_occluded = voxel_faces.iter().all(|face| {
+                        get_voxel_face(&voxels, [x, y, z], face.clone(), (width, height, depth))
+                            .filter(|voxel| voxel.is_solid())
+                            .is_some()
+                    });
+
                     // currently, we're just checking if the voxel is solid. realistically, we
                     // will want to do more checks eventually. things like frustum culling
                     // could perhaps be handled in the same loop (separate function of course).
-                    if !voxel.is_solid() {
+                    if !voxel.is_solid() || fully_occluded {
                         continue;
                     }
 
@@ -85,18 +104,6 @@ pub fn mesh(
                     // Adjust indices for each voxel
                     let base_vertex_index = all_vertices.len() as u32;
 
-                    // not entirely sure why, but `VoxelFace::Back` and `VoxelFace::Top` have to
-                    // be the other way around in comparison to the way we declared the indices,
-                    // otherwise the wrong sides will be culled.
-                    let voxel_faces = [
-                        VoxelFace::Back,
-                        VoxelFace::Right,
-                        VoxelFace::Front,
-                        VoxelFace::Left,
-                        VoxelFace::Up,
-                        VoxelFace::Down,
-                    ];
-
                     // general indices, we're not handling this in the voxel so we can
                     // potentially change up the meshing algorithm sometime to be
                     // greedy meshing, although probably not. will potentially
@@ -105,14 +112,13 @@ pub fn mesh(
                     //
                     // if anyone else reads this (probably not), read more about greedy
                     // meshing here: https://0fps.net/2012/06/30/meshing-in-a-minecraft-game/
-
                     let indices = [
-                        [0, 2, 1, 0, 3, 2], // Front face
-                        [1, 6, 5, 1, 2, 6], // Right face
-                        [5, 7, 4, 5, 6, 7], // Back face
-                        [4, 3, 0, 4, 7, 3], // Left face
-                        [3, 6, 2, 3, 7, 6], // Top face
-                        [4, 1, 5, 4, 0, 1], // Bottom face
+                        [0, 2, 1, 0, 3, 2],
+                        [1, 6, 5, 1, 2, 6],
+                        [5, 7, 4, 5, 6, 7],
+                        [4, 3, 0, 4, 7, 3],
+                        [3, 6, 2, 3, 7, 6],
+                        [4, 1, 5, 4, 0, 1],
                     ]
                     .iter()
                     .enumerate()
@@ -121,13 +127,7 @@ pub fn mesh(
                         // we can simply ignore this.
                         !settings.occlusion_culling
                         // if occlusion culling *should* happen, we will handle this here
-                        || get_voxel_face(&voxels, [x, y, z], voxel_faces[*index].clone(), (width, height, depth))
-                        // .filter() on the Option<T> to see if the face is solid, if
-                        // it isn't, we can ignore this regardless.
-                        .filter(|voxel| voxel.is_solid())
-                        // if the result is none and is solid, it means the face should
-                        // get culled.
-                        .is_none()
+                        || check_occluded_with_adjacents(&voxels, &adjacent_voxels, [x, y, z], voxel_faces[*index].clone(), (width, height, depth))
                     )
                     .flat_map(|(_, block)| block)
                     // Add base_vertex_index to each index to match vertex indices;
@@ -186,4 +186,66 @@ pub fn get_voxel_face<'a>(
     } else {
         None // If the neighboring voxel is outside the bounds, consider it not solid
     }
+}
+pub fn check_occluded_with_adjacents<'a>(
+    voxels: &Vec<Voxel>,
+    adjacents: &Vec<Vec<Voxel>>,
+    coordinates: impl Into<UVec3>,
+    face: VoxelFace,
+    (width, height, _): (u32, u32, u32),
+) -> bool {
+    let coordinates = coordinates.into();
+    let UVec3 { x, y, z } = coordinates.try_into().unwrap(); // Use UVec3 instead of IVec3
+
+    let (nx, ny, nz) = match face {
+        VoxelFace::Front => (x, y, z + 1),
+        VoxelFace::Back => (x, y, z - 1),
+        VoxelFace::Left => (x - 1, y, z),
+        VoxelFace::Right => (x + 1, y, z),
+        VoxelFace::Up => (x, y + 1, z),
+        VoxelFace::Down => (x, y - 1, z),
+    };
+
+    if nx < width && ny < height {
+        let index = nx + ny * (width) + nz * (width) * (height);
+
+        return voxels
+            .get(index as usize)
+            .filter(|voxel| voxel.is_solid())
+            .is_none();
+    }
+
+    // Determine which adjacent face to check
+
+    // this logic is flawed. please help.
+    let adjacent_chunk = match face {
+        VoxelFace::Back => adjacents.get(0),
+        VoxelFace::Front => adjacents.get(1),
+        VoxelFace::Right => adjacents.get(2),
+        VoxelFace::Left => adjacents.get(3),
+        VoxelFace::Up => adjacents.get(4),
+        VoxelFace::Down => adjacents.get(5),
+    };
+
+    if let Some(adj_voxels) = adjacent_chunk {
+        // Determine the corresponding index within the adjacent voxels
+        let adj_index = match face {
+            VoxelFace::Front => (width - 1 - x - nx) + (y + ny) * width + z * width * height,
+            VoxelFace::Back => (x + nx) + (y + ny) * width + (height - 1 - z - nz) * width * height,
+            VoxelFace::Left => z + nz + (y + ny) * width + (width - 1 - x - nx) * width * height,
+            VoxelFace::Right => z + nz + (y + ny) * width + x * width * height,
+            VoxelFace::Up => z + nz + y * width + (x + nx) * width * height,
+            VoxelFace::Down => z + nz + (width - 1 - y - ny) * width + (x + nx) * width * height,
+        };
+
+        if adj_voxels
+            .get(adj_index as usize)
+            .filter(|voxel| voxel.is_solid())
+            .is_some()
+        {
+            return false;
+        }
+    }
+
+    true
 }

@@ -1,6 +1,7 @@
-use crate::chunk::{voxel::Voxel, GenerationSettings};
 use bevy::prelude::*;
+use rayon::prelude::*;
 
+use crate::chunk::{voxel::Voxel, GenerationSettings};
 use noise::{NoiseFn, OpenSimplex};
 
 pub fn generate_voxels(
@@ -13,18 +14,14 @@ pub fn generate_voxels(
     }: IVec3,
     (width, height, depth): (u32, u32, u32),
 ) -> Vec<Voxel> {
-    let mut voxels: Vec<Voxel> = Vec::new();
-
-    voxels.resize(
-        (width * height * depth)
-            .try_into()
-            .expect("width*height*depth could not be mapped into usize, how big are your chunks?"),
+    let mut voxels: Vec<Voxel> = vec![
         Voxel {
             size: 1.0,
             is_solid: false,
             color: Color::rgba(0.0, 0.0, 0.0, 0.0),
-        },
-    );
+        };
+        (width * height * depth).try_into().unwrap()
+    ];
 
     let frequency_scale: f64 = settings.frequency_scale;
     let amplitude_scale: f64 = settings.amplitude_scale;
@@ -33,63 +30,57 @@ pub fn generate_voxels(
     let octaves: i32 = settings.octaves;
     let persistence: f64 = settings.persistence;
 
-    let mut amplitudes = vec![1.0; octaves.try_into().unwrap()]; // Precompute amplitudes
+    let amplitudes: Vec<f64> = (0..octaves).map(|i| persistence.powi(i)).collect(); // Precompute amplitudes
 
     let width_scale = frequency_scale / width as f64;
-    let height_scale = frequency_scale / height as f64; // Add height_scale
+    let height_scale = frequency_scale / height as f64;
 
-    for i in 1..octaves {
-        amplitudes.insert(i as usize, amplitudes[(i - 1) as usize] * persistence);
-    }
+    voxels
+        .par_iter_mut()
+        .enumerate()
+        .for_each(|(index, voxel)| {
+            let z = index / (width * height) as usize;
+            let y = (index % (width * height) as usize) / width as usize;
+            let x = index % width as usize;
 
-    for z in 0..depth {
-        let z_coord = (z as f64 + world_pos_z as f64) * frequency_scale;
-        let z_coord_with_offset = z_coord + (z as f64 / depth as f64) * width_scale;
+            let z_coord = (z as f64 + world_pos_z as f64) * frequency_scale;
+            let z_coord_with_offset = z_coord + (z as f64 / depth as f64) * width_scale;
 
-        for x in 0..width {
             let x_coord = (x as f64 + world_pos_x as f64) * frequency_scale;
-
             let x_coord_with_offset = x_coord + (x as f64 / width as f64) * width_scale;
 
-            for y in 0..height {
-                let y_coord = (y as f64 + world_pos_y as f64) * frequency_scale; // Apply world_pos_y
+            let y_coord = (y as f64 + world_pos_y as f64) * frequency_scale;
+            let y_coord_with_offset = y_coord + (y as f64 / height as f64) * height_scale;
 
-                let y_coord_with_offset = y_coord + (y as f64 / height as f64) * height_scale; // Apply height_scale
-
-                let mut noise_value = 0.0;
-                for i in 0..octaves {
-                    let p = [
-                        x_coord_with_offset,
-                        y_coord_with_offset, // Use y_coord_with_offset
-                        z_coord_with_offset,
-                        (i as f64) * 10.0,
-                    ];
-
-                    noise_value += amplitudes[i as usize] * simplex.get(p);
-                }
-
-                noise_value *= amplitude_scale;
-                if noise_value > threshold {
-                    let heat = ((noise_value - threshold) / (amplitude_scale - threshold))
-                        .max(0.0)
-                        .min(1.0);
-
-                    let color = generate_color_from_heat(heat);
-                    let index = x + y * width + z * width * height;
-
-                    voxels[index as usize] = Voxel {
-                        color,
-                        size: 1.0,
-                        is_solid: true,
-                    };
-                }
+            let mut noise_value = 0.0;
+            for i in 0..octaves {
+                let p = [
+                    x_coord_with_offset,
+                    y_coord_with_offset,
+                    z_coord_with_offset,
+                    (i as f64) * 10.0,
+                ];
+                noise_value += amplitudes[i as usize] * simplex.get(p);
             }
-        }
-    }
 
-    return voxels;
+            noise_value *= amplitude_scale;
+            if noise_value > threshold {
+                let heat = ((noise_value - threshold) / (amplitude_scale - threshold))
+                    .max(0.0)
+                    .min(1.0);
+
+                let color = generate_color_from_heat(heat);
+
+                *voxel = Voxel {
+                    color,
+                    size: 1.0,
+                    is_solid: true,
+                };
+            }
+        });
+
+    voxels
 }
-
 #[inline]
 fn generate_color_from_heat(heat: f64) -> Color {
     const DARK_FACTOR: f64 = 0.3;

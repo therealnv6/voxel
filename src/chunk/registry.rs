@@ -27,16 +27,18 @@ impl ChunkRegistry {
         }
     }
 
-    pub fn get_adjacent_chunks(&self, Coordinates { x, y, z }: Coordinates) -> Vec<&Chunk> {
+    pub fn get_adjacent_chunks(&self, Coordinates { x, y, z }: Coordinates) -> Vec<Option<&Chunk>> {
         [
             Coordinates::new(x + 1, y, z),
             Coordinates::new(x - 1, y, z),
+            Coordinates::new(x, y, z + 1),
+            Coordinates::new(x, y, z - 1),
             Coordinates::new(x, y + 1, z),
             Coordinates::new(x, y - 1, z),
         ]
         .iter()
-        .flat_map(|coordinates| self.get_chunk_at(*coordinates))
-        .collect::<Vec<&Chunk>>()
+        .map(|coordinates| self.get_chunk_at(*coordinates))
+        .collect::<Vec<Option<&Chunk>>>()
     }
 
     pub fn get_chunk_at(&self, coordinates: impl Into<Coordinates>) -> Option<&Chunk> {
