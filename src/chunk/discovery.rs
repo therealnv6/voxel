@@ -69,19 +69,16 @@ pub fn unload_distant_chunks(
             let chunk = registry.get_chunk_at_mut([*pos_x, *pos_y, *pos_z]);
 
             if let Some(chunk) = chunk {
-                // we have to re-mark it as dirty as it has to get re-rendered once it's within the
-                // discovery radius again. otherwise, it will just appear as a blank chunk.
-
-                // this should always be the case, otherwise how would it have been added to the loaded
-                // chunks list? well, we'll still check because why not.
-                chunk.set_dirty(true);
-
-                // remove the rendering material component to despawn the entity.
-                // TODO: perhaps we could change this to only mark it as invisible,
-                // that way we don't have to re-mesh the chunk once we enter
-                // the discovery radius again.
-                commands.entity(entity).despawn();
+                chunk.set_drawn(false);
             }
+
+            commands
+                .entity(entity)
+                .insert(SceneBundle {
+                    visibility: Visibility::Hidden,
+                    ..Default::default()
+                })
+                .remove::<PbrBundle>();
         }
     }
 }

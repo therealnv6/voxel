@@ -10,6 +10,9 @@ opt-level = 3
 [profile.release]
 debug = true
 
+[profile.dev]
+opt-level = 1
+
 [dependencies]
 # bevy-specific crates and dependencies
 bevy-inspector-egui = "0.19.0"

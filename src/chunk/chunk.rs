@@ -1,6 +1,6 @@
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard};
 
-use bevy::prelude::{Handle, Mesh, UVec3};
+use bevy::prelude::{Entity, Handle, Mesh, UVec3};
 use enumset::{enum_set, EnumSet, EnumSetType};
 
 use super::{registry::Coordinates, voxel::Voxel};
@@ -35,7 +35,9 @@ pub struct Chunk {
     pub depth: u32,
     pub mesh: Option<Handle<Mesh>>,
     pub flags: EnumSet<ChunkFlags>,
+    pub entity: Option<Entity>,
     pub world_position: Coordinates,
+    pub lod: u32,
 }
 
 impl Chunk {
@@ -50,19 +52,17 @@ impl Chunk {
             depth,
             world_position,
             mesh: None,
-            flags: enum_set!(ChunkFlags::Dirty),
+            lod: 0,
+            entity: None,
+            flags: enum_set!(),
         }
     }
 
     pub fn get_voxel(&self, coordinates: impl Into<UVec3>) -> Option<Voxel> {
         let UVec3 { x, y, z } = coordinates.into();
+        let index = self.get_index([x, y, z]);
 
-        if x < self.width && y < self.height && z < self.depth {
-            let index = self.get_index([x, y, z]);
-            return self.voxels.read().ok()?.get(index as usize).copied();
-        } else {
-            None
-        }
+        return self.voxels.read().ok()?.get(index as usize).copied();
     }
 
     pub fn borrow_voxels(
@@ -105,7 +105,15 @@ impl Chunk {
     }
 
     pub fn get_mesh(&self) -> Option<Handle<Mesh>> {
-        self.mesh.clone()
+        self.mesh.as_ref().map(|mesh| mesh.clone_weak())
+    }
+
+    pub fn get_entity(&self) -> Option<Entity> {
+        return self.entity;
+    }
+
+    pub fn set_entity(&mut self, entity: Entity) {
+        self.entity = Some(entity);
     }
 
     pub fn is_generated(&self) -> bool {
@@ -156,7 +164,19 @@ impl Chunk {
         }
     }
 
+    pub fn apply_mask(&mut self, flag: EnumSet<ChunkFlags>) {
+        self.flags &= !flag;
+    }
+
     pub fn get_flags(&self) -> EnumSet<ChunkFlags> {
         self.flags
+    }
+
+    pub fn set_lod(&mut self, lod: u32) {
+        self.lod = lod;
+    }
+
+    pub fn get_lod(&mut self) -> u32 {
+        return self.lod;
     }
 }

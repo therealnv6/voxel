@@ -1,12 +1,10 @@
-use std::time::Duration;
-
 use crate::chunk::{
     registry::{ChunkRegistry, Coordinates},
     ChunkEntity,
 };
 
 use bevy::prelude::*;
-use bevy_tweening::{lens::TransformPositionLens, Animator, EaseFunction, Tween};
+use bevy_tweening::Animator;
 
 #[derive(Event)]
 pub struct ChunkDrawEvent {
@@ -33,28 +31,31 @@ pub fn draw_chunks(
         };
 
         if let Some(mesh) = chunk.get_mesh() {
-            let tween = Tween::new(
-                EaseFunction::QuadraticIn,
-                Duration::from_millis(550),
-                TransformPositionLens {
-                    start: Vec3::new(x as f32, y as f32 - 12.0, z as f32),
-                    end: Vec3::new(x as f32, y as f32, z as f32),
-                },
-            );
+            if let None = chunk.get_entity() {
+                chunk.set_entity(commands.spawn_empty().id());
+            }
 
-            let bundle = MaterialMeshBundle {
-                mesh,
-                material: material.clone(),
-                ..Default::default()
-            };
+            let entity = chunk.get_entity().expect("entity not found");
+            let mut entity_mut = commands.entity(entity);
+
+            // taken this from my old implementation, is this bad?
+            entity_mut
+                .remove::<Visibility>()
+                .remove::<MaterialMeshBundle<StandardMaterial>>()
+                .remove::<Animator<Transform>>()
+                .insert((
+                    ChunkEntity {
+                        position: (x, y, z).into(),
+                    },
+                    MaterialMeshBundle {
+                        mesh,
+                        material: material.clone_weak(),
+                        transform: Transform::from_xyz(x as f32, y as f32, z as f32),
+                        ..Default::default()
+                    },
+                ));
 
             chunk.set_drawn(true);
-            commands
-                .spawn(bundle)
-                .insert(ChunkEntity {
-                    position: (x, y, z).into(),
-                })
-                .insert(Animator::new(tween));
         }
     }
 }

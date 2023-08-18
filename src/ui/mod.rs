@@ -2,16 +2,16 @@ use bevy::prelude::*;
 
 use bevy_egui::EguiContext;
 use bevy_window::PrimaryWindow;
-use egui::{Color32, Slider};
+use egui::{Checkbox, Color32, Slider};
 
 use crate::chunk::{registry::ChunkRegistry, DiscoverySettings, GenerationSettings, MeshSettings};
 
 pub fn inspector_ui(
     mut commands: Commands,
     mut context: Query<&mut EguiContext, With<PrimaryWindow>>,
-    mut mesh_settings: ResMut<MeshSettings>,
-    mut gen_settings: ResMut<GenerationSettings>,
-    mut discovery_settings: ResMut<DiscoverySettings>,
+    mut meshing: ResMut<MeshSettings>,
+    mut generation: ResMut<GenerationSettings>,
+    mut discovery: ResMut<DiscoverySettings>,
     directional_light_entities: Query<Entity, With<DirectionalLight>>,
     pbr_entities: Query<Entity, With<Handle<StandardMaterial>>>,
     mut chunk_registry: ResMut<ChunkRegistry>,
@@ -27,15 +27,16 @@ pub fn inspector_ui(
         .show(ctx.get_mut(), |ui| {
             egui::SidePanel::left("chunk-settings").show_inside(ui, |ui| {
                 ui.heading("Chunk Settings");
-                ui.checkbox(&mut mesh_settings.occlusion_culling, "Occlusion Culling");
+                ui.checkbox(&mut meshing.occlusion_culling, "Occlusion Culling");
+                ui.checkbox(&mut discovery.lod, "Level of Detail")
+                    .on_hover_text("Level of Detail is not recommended to be used. \nThere's a high chance it will break any kind of culling due to inproper coordinate calculations.");
 
                 ui.add(
-                    Slider::new(&mut discovery_settings.discovery_radius, 1..=40)
-                        .text("Discovery Radius"),
+                    Slider::new(&mut discovery.discovery_radius, 1..=40).text("Discovery Radius"),
                 );
 
                 ui.add(
-                    Slider::new(&mut discovery_settings.discovery_radius_height, 1..=40)
+                    Slider::new(&mut discovery.discovery_radius_height, 1..=40)
                         .text("Discovery Height Radius"),
                 );
 
@@ -58,17 +59,17 @@ pub fn inspector_ui(
                 ui.heading("Generation Settings");
 
                 ui.add(
-                    Slider::new(&mut gen_settings.frequency_scale, 0.0..=40.0)
+                    Slider::new(&mut generation.frequency_scale, 0.0..=40.0)
                         .text("Frequency Scale"),
                 );
                 ui.add(
-                    Slider::new(&mut gen_settings.amplitude_scale, 0.0..=40.0)
+                    Slider::new(&mut generation.amplitude_scale, 0.0..=40.0)
                         .text("Amplitude Scale"),
                 );
 
-                ui.add(Slider::new(&mut gen_settings.threshold, 0.0..=40.0).text("Threshold"));
-                ui.add(Slider::new(&mut gen_settings.octaves, 0..=40).text("Octaves"));
-                ui.add(Slider::new(&mut gen_settings.persistence, 0.0..=40.0).text("Persistence"));
+                ui.add(Slider::new(&mut generation.threshold, 0.0..=40.0).text("Threshold"));
+                ui.add(Slider::new(&mut generation.octaves, 0..=40).text("Octaves"));
+                ui.add(Slider::new(&mut generation.persistence, 0.0..=40.0).text("Persistence"));
             });
 
             egui::SidePanel::left("visual-settings").show_inside(ui, |ui| {

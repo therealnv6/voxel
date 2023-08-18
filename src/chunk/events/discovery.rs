@@ -16,7 +16,7 @@ use super::{draw::ChunkDrawEvent, gen::ChunkGenerateEvent, mesh::ChunkMeshEvent}
 pub struct ChunkDiscoveryEvent;
 
 #[derive(Component)]
-pub struct ChunkDiscoveryTask(Task<Vec<Coordinates>>);
+pub struct ChunkDiscoveryTask(Task<Vec<(Coordinates, Coordinates)>>);
 
 pub fn handle_chunk_discovery(
     mut commands: Commands,
@@ -65,27 +65,30 @@ fn spawn_discovery_task(
     (center_chunk_x, center_chunk_y, center_chunk_z): (i32, i32, i32),
     (radius, radius_height): (i32, i32),
     (chunk_size, chunk_height): (f32, f32),
-) -> Task<Vec<Coordinates>> {
+) -> Task<Vec<(Coordinates, Coordinates)>> {
     let pool = AsyncComputeTaskPool::get();
-
     pool.spawn(async move {
-        let sets: Vec<Coordinates> = (-radius..=radius)
+        (-radius..=radius)
             .into_par_iter()
             .flat_map(|x_offset| {
                 (-radius_height..=radius_height)
                     .flat_map(move |y_offset| {
-                        (-radius..=radius).map(move |z_offset| {
-                            let x = (center_chunk_x + x_offset) * chunk_size as i32;
-                            let y = (center_chunk_y + y_offset) * chunk_height as i32;
-                            let z = (center_chunk_z + z_offset) * chunk_size as i32;
-                            (x, y, z).into()
-                        })
-                    })
-                    .collect::<Vec<Coordinates>>()
-            })
-            .collect();
+                        (-radius..=radius)
+                            .filter_map(move |z_offset| {
+                                let x = (center_chunk_x + x_offset) * chunk_size as i32;
+                                let y = (center_chunk_y + y_offset) * chunk_height as i32;
+                                let z = (center_chunk_z + z_offset) * chunk_size as i32;
 
-        sets
+                                Some((
+                                    Coordinates { x, y, z },
+                                    Coordinates::new(x_offset, y_offset, z_offset),
+                                ))
+                            })
+                            .collect::<Vec<(Coordinates, Coordinates)>>()
+                    })
+                    .collect::<Vec<(Coordinates, Coordinates)>>()
+            })
+            .collect()
     })
 }
 
@@ -96,19 +99,41 @@ pub fn process_discovery_tasks(
     mut generate_writer: EventWriter<ChunkGenerateEvent>,
     mut draw_writer: EventWriter<ChunkDrawEvent>,
     mut mesh_writer: EventWriter<ChunkMeshEvent>,
-    registry: Res<ChunkRegistry>,
+    mut registry: ResMut<ChunkRegistry>,
+    discovery_settings: Res<DiscoverySettings>,
 ) {
     tasks.iter_mut().for_each(|(entity, mut task)| {
         if let Some(data) = future::block_on(future::poll_once(&mut task.0)) {
             commands.entity(entity).remove::<ChunkDiscoveryTask>();
 
-            for IVec3 { x, y, z } in data {
-                let chunk = registry.get_chunk_at([x, y, z]);
+            for (
+                IVec3 { x, y, z },
+                IVec3 {
+                    x: x_offset,
+                    y: y_offset,
+                    z: z_offset,
+                },
+            ) in data
+            {
+                let chunk = registry.get_chunk_at_mut([x, y, z]);
                 let coordinates = Coordinates::new(x, y, z);
 
                 match chunk {
                     Some(chunk) => {
+                        if discovery_settings.lod {
+                            chunk.set_lod({
+                                if x_offset >= y_offset && x_offset >= z_offset {
+                                    x_offset
+                                } else if y_offset >= x_offset && y_offset >= z_offset {
+                                    y_offset
+                                } else {
+                                    z_offset
+                                }
+                            } as u32);
+                        }
+
                         let flags = chunk.get_flags();
+
                         if flags.contains(ChunkFlags::Busy) {
                             continue;
                         }
@@ -117,9 +142,7 @@ pub fn process_discovery_tasks(
                             generate_writer.send(ChunkGenerateEvent { coordinates });
                         }
 
-                        if flags.contains(ChunkFlags::Dirty)
-                            && flags.contains(ChunkFlags::Meshed)
-                            && !flags.contains(ChunkFlags::Drawn)
+                        if flags.contains(ChunkFlags::Meshed) && !flags.contains(ChunkFlags::Drawn)
                         {
                             draw_writer.send(ChunkDrawEvent { coordinates });
                         } else if flags.contains(ChunkFlags::Dirty) {
