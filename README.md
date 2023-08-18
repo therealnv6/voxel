@@ -3,7 +3,7 @@
 a simple voxel game "engine" written in Rust, using
 [Bevy](https://bevyengine.org/)
 
-![screenshot](https://github.com/therealnv6/voxel/blob/master/.assets/screenshot.png)
+![screenshot](https://github.com/therealnv6/voxel/blob/master/.assets/screenshot1.png)
 
 # Roadmap
 
