@@ -29,7 +29,7 @@ pub fn generate_chunk(
     let pool = AsyncComputeTaskPool::get();
 
     for ChunkGenerateEvent { coordinates } in reader.iter() {
-        let coordinates = coordinates.clone();
+        let coordinates = *coordinates;
         let Some(chunk) = registry.get_chunk_at_mut(coordinates) else {
             continue;
         };
@@ -39,8 +39,7 @@ pub fn generate_chunk(
         let settings = settings.clone();
         let simplex = simplex.0.clone();
 
-        // we have to clone the world_position here to avoid moving the chunk into the thread
-        let world_position = chunk.world_position.clone();
+        let world_position = chunk.world_position;
 
         let task = pool.spawn(async move {
             let voxels = generate_voxels(

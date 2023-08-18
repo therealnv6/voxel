@@ -27,22 +27,34 @@ pub fn mesh_chunk(
     let pool = AsyncComputeTaskPool::get();
 
     for ChunkMeshEvent { coordinates } in reader.iter() {
-        if let Some(chunk) = registry.get_chunk_at_mut(*coordinates) {
+        let coordinates = *coordinates;
+
+        if let Some(chunk) = registry.get_chunk_at_mut(coordinates) {
             chunk.set_busy(true);
 
-            let coordinates_clone = coordinates.clone();
+            let settings = settings.clone();
 
-            // i want to find a way to avoid having to clone the voxels to pass into the mesh
-            // function, any ideas?
-            let voxels_clone = chunk.clone_voxels();
-            let settings_clone = settings.clone();
             let dimensions = chunk.get_dimensions();
+            let binding = chunk.get_voxels();
 
             let task = pool.spawn(async move {
-                return (
-                    mesh(&voxels_clone, settings_clone, dimensions),
-                    coordinates_clone,
+                let voxels = binding.read();
+
+                // this looks a bit shit, but hey it works.
+                let value = (
+                    mesh(
+                        if let Ok(voxels) = voxels {
+                            voxels.to_vec()
+                        } else {
+                            vec![]
+                        },
+                        settings,
+                        dimensions,
+                    ),
+                    coordinates,
                 );
+
+                return value;
             });
 
             commands.spawn(ChunkMeshTask(task));

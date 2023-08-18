@@ -1,3 +1,5 @@
+use bevy_framepace::*;
+use bevy_tweening::TweeningPlugin;
 use std::f32::consts::PI;
 
 use bevy::{
@@ -15,7 +17,6 @@ use smooth_bevy_cameras::{
     controllers::fps::{FpsCameraBundle, FpsCameraController, FpsCameraPlugin},
     LookTransformPlugin,
 };
-use ui::inspector_ui;
 
 pub mod chunk;
 pub mod input;
@@ -48,16 +49,17 @@ fn main() {
             InputPlugin,
             DefaultInspectorConfigPlugin,
             EguiPlugin,
+            TweeningPlugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(
             Update,
-            inspector_ui.run_if(input_toggle_active(true, KeyCode::Escape)),
+            ui::inspector_ui.run_if(input_toggle_active(true, KeyCode::Escape)),
         )
         .run();
 }
 
-fn setup(mut commands: Commands, input: Res<Input<KeyCode>>) {
+fn setup(mut commands: Commands) {
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             illuminance: 5000.0,
@@ -83,11 +85,9 @@ fn setup(mut commands: Commands, input: Res<Input<KeyCode>>) {
         .spawn(Camera3dBundle::default())
         .insert(FpsCameraBundle::new(
             FpsCameraController {
-                // no smoothing, we're just using this plugin because... well.. i'm lazy.
-                enabled: input_toggle_active(true, KeyCode::Escape)(input),
-                smoothing_weight: 0.8,
-                mouse_rotate_sensitivity: Vec2::splat(1.5),
-                translate_sensitivity: 25.0,
+                smoothing_weight: 0.1,
+                mouse_rotate_sensitivity: Vec2::splat(0.9),
+                translate_sensitivity: 35.0,
                 ..default()
             },
             Vec3::new(-2.0, 5.0, 5.0),

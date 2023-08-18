@@ -44,9 +44,13 @@ impl Voxel {
 }
 
 pub fn mesh(
-    voxels: &Vec<Voxel>,
+    voxels: Vec<Voxel>,
     settings: MeshSettings,
-    (width, height, depth): (u32, u32, u32),
+    UVec3 {
+        x: width,
+        y: height,
+        z: depth,
+    }: UVec3,
 ) -> Mesh {
     // Lists to store vertex positions, colors, and indices for the final mesh
     // relatively ugly, but it works.

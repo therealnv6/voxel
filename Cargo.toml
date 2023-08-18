@@ -31,11 +31,9 @@ once_cell = "1.18.0"
 # noise generation
 noise = "0.8.2"
 rand = "0.8.5" # we're only really using this for noise generation
-rayon = "1.7.0"
-dynqueue = "0.3.0"
-crossbeam = "0.8.2"
-crossbeam-queue = "0.3.8"
 enumset = "1.1.2"
+bevy_framepace = "0.13.3"
+bevy_tweening = "0.8.0"
 
 [dependencies.bevy]
 version = "0.11.0"

@@ -1,9 +1,6 @@
 use bevy::prelude::*;
 
-use crate::chunk::{
-    registry::{ChunkRegistry},
-    ChunkEntity, DiscoverySettings,
-};
+use crate::chunk::{registry::ChunkRegistry, ChunkEntity, DiscoverySettings};
 
 /// Unload Distant Chunks System
 ///
@@ -69,14 +66,14 @@ pub fn unload_distant_chunks(
             || diff_z - 1.0 > discovery_settings.discovery_radius.into()
             || diff_y - 1.0 > discovery_settings.discovery_radius_height.into()
         {
-            // we have to re-mark it as dirty as it has to get re-rendered once it's within the
-            // discovery radius again. otherwise, it will just appear as a blank chunk.
-
             let chunk = registry.get_chunk_at_mut([*pos_x, *pos_y, *pos_z]);
 
-            // this should always be the case, otherwise how would it have been added to the loaded
-            // chunks list? well, we'll still check because why not.
             if let Some(chunk) = chunk {
+                // we have to re-mark it as dirty as it has to get re-rendered once it's within the
+                // discovery radius again. otherwise, it will just appear as a blank chunk.
+
+                // this should always be the case, otherwise how would it have been added to the loaded
+                // chunks list? well, we'll still check because why not.
                 chunk.set_dirty(true);
 
                 // remove the rendering material component to despawn the entity.

@@ -91,7 +91,9 @@ impl Plugin for ChunkPlugin {
                     events::discovery::handle_chunk_discovery
                         .run_if(input_toggle_active(true, KeyCode::L)),
                     events::discovery::process_discovery_tasks,
-                    discovery::unload_distant_chunks.run_if(on_timer(Duration::from_millis(500))),
+                    discovery::unload_distant_chunks
+                        .run_if(on_timer(Duration::from_millis(500)))
+                        .run_if(input_toggle_active(true, KeyCode::M)),
                 ),
             );
     }

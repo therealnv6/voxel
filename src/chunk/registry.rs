@@ -16,8 +16,8 @@ pub struct ChunkRegistry {
 pub type Coordinates = IVec3;
 
 impl ChunkRegistry {
-    pub const CHUNK_SIZE: i32 = 24;
-    pub const CHUNK_HEIGHT: i32 = 24;
+    pub const CHUNK_SIZE: i32 = 18;
+    pub const CHUNK_HEIGHT: i32 = 18;
 
     pub const CHUNK_GRID_SIZE: i32 = 1024;
 
@@ -25,6 +25,18 @@ impl ChunkRegistry {
         Self {
             chunks: HashMap::new(),
         }
+    }
+
+    pub fn get_adjacent_chunks(&self, Coordinates { x, y, z }: Coordinates) -> Vec<&Chunk> {
+        [
+            Coordinates::new(x + 1, y, z),
+            Coordinates::new(x - 1, y, z),
+            Coordinates::new(x, y + 1, z),
+            Coordinates::new(x, y - 1, z),
+        ]
+        .iter()
+        .flat_map(|coordinates| self.get_chunk_at(*coordinates))
+        .collect::<Vec<&Chunk>>()
     }
 
     pub fn get_chunk_at(&self, coordinates: impl Into<Coordinates>) -> Option<&Chunk> {

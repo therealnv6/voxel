@@ -19,9 +19,9 @@ pub struct ChunkDiscoveryTask(Task<Vec<Coordinates>>);
 
 pub fn handle_chunk_discovery(
     mut commands: Commands,
+    mut last_translation: Local<Option<Vec3>>,
     discovery_settings: Res<DiscoverySettings>,
     transform: Query<&Transform, With<Camera>>,
-    mut last_translation: Local<Option<Vec3>>,
 ) {
     let transform = transform.single();
     let translation = transform.translation;
