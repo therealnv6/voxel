@@ -9,6 +9,9 @@ a simple voxel game "engine" written in Rust, using
 
 - [x] 3D chunk registry
 - [x] 3D noise generation
+- [x] CPU "frustum" culling
+  - [discovery](https://github.com/therealnv6/voxel/blob/4d066d7b06bb6bd9b358d3f9c97532305b74026e/src/chunk/events/discovery.rs#L61)
+  - ~~unloading~~ (todo)
 - [ ] LOD
   - ~~Face culling is completely broken in LOD, which means it's basically
     unusable. Haven't really taken the time to look into this.~~
