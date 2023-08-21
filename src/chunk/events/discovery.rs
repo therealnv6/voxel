@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 
 use bevy::{
     math::Vec3A,
@@ -25,7 +25,7 @@ use super::{draw::ChunkDrawEvent, gen::ChunkGenerateEvent, mesh::ChunkMeshEvent}
 pub struct ChunkDiscoveryEvent;
 
 #[derive(Component)]
-pub struct ChunkDiscoveryTask(Task<Vec<(Coordinates, Coordinates)>>);
+pub struct ChunkDiscoveryTask(Task<Vec<Coordinates>>);
 
 pub fn handle_chunk_discovery(
     mut commands: Commands,
@@ -89,7 +89,7 @@ fn spawn_discovery_task(
     (radius, radius_height): (i32, i32),
     (chunk_size, chunk_height): (f32, f32),
     frustum: &Frustum,
-) -> Task<Vec<(Coordinates, Coordinates)>> {
+) -> Task<Vec<Coordinates>> {
     let pool = AsyncComputeTaskPool::get();
     let spaces = frustum.half_spaces;
 
@@ -135,11 +135,11 @@ fn spawn_discovery_task(
                                     return None;
                                 }
 
-                                Some((point, Coordinates::new(x_offset, y_offset, z_offset)))
+                                Some(point)
                             })
-                            .collect::<Vec<(Coordinates, Coordinates)>>()
+                            .collect::<Vec<Coordinates>>()
                     })
-                    .collect::<Vec<(Coordinates, Coordinates)>>()
+                    .collect::<Vec<Coordinates>>()
             })
             .collect()
     })
@@ -175,65 +175,54 @@ pub fn process_discovery_tasks(
 
                 return Some(
                     data.into_par_iter()
-                        .flat_map(
-                            move |(
-                                coordinates,
-                                // we might need this eventually, but has gone unused for the time
-                                // being. don't remove this please!
-                                IVec3 {
-                                    x: _x_offset,
-                                    y: _y_offset,
-                                    z: _z_offset,
-                                },
-                            )| {
-                                let chunk = registry.get_chunk_at(coordinates);
+                        .flat_map(move |coordinates| {
+                            let chunk = registry.get_chunk_at(coordinates);
 
-                                let Ok(mut coordinate_queue) = coordinate_queue.write() else {
+                            let Ok(mut coordinate_queue) = coordinate_queue.write() else {
                                     return None;
                                 };
 
-                                if coordinate_queue.contains(&coordinates) {
-                                    return None;
-                                }
+                            if coordinate_queue.contains(&coordinates) {
+                                return None;
+                            }
 
-                                let result = match chunk {
-                                    Some(chunk) => {
-                                        let flags = chunk.get_flags();
+                            let result = match chunk {
+                                Some(chunk) => {
+                                    let flags = chunk.get_flags();
 
-                                        if flags.contains(ChunkFlags::Busy) {
-                                            None
-                                        } else if !flags.contains(ChunkFlags::Generated) {
-                                            Some(ProcessWriterType::GenerateWriter(
-                                                ChunkGenerateEvent { coordinates },
-                                            ))
-                                        } else if flags.contains(ChunkFlags::Meshed)
-                                            && !flags.contains(ChunkFlags::Drawn)
-                                        {
-                                            Some(ProcessWriterType::DrawWriter(ChunkDrawEvent {
-                                                coordinates,
-                                            }))
-                                        } else if flags.contains(ChunkFlags::Dirty) {
-                                            Some(ProcessWriterType::MeshWriter(ChunkMeshEvent {
-                                                coordinates,
-                                            }))
-                                        } else {
-                                            None
-                                        }
+                                    if flags.contains(ChunkFlags::Busy) {
+                                        None
+                                    } else if !flags.contains(ChunkFlags::Generated) {
+                                        Some(ProcessWriterType::GenerateWriter(
+                                            ChunkGenerateEvent { coordinates },
+                                        ))
+                                    } else if flags.contains(ChunkFlags::Meshed)
+                                        && !flags.contains(ChunkFlags::Drawn)
+                                    {
+                                        Some(ProcessWriterType::DrawWriter(ChunkDrawEvent {
+                                            coordinates,
+                                        }))
+                                    } else if flags.contains(ChunkFlags::Dirty) {
+                                        Some(ProcessWriterType::MeshWriter(ChunkMeshEvent {
+                                            coordinates,
+                                        }))
+                                    } else {
+                                        None
                                     }
-                                    None => {
-                                        return Some(ProcessWriterType::ChunkCreationWriter(
-                                            ChunkCreateEvent { coordinates },
-                                        ));
-                                    }
-                                };
-
-                                if let Some(_) = result {
-                                    coordinate_queue.insert(coordinates);
                                 }
+                                None => {
+                                    return Some(ProcessWriterType::ChunkCreationWriter(
+                                        ChunkCreateEvent { coordinates },
+                                    ));
+                                }
+                            };
 
-                                return result;
-                            },
-                        )
+                            if let Some(_) = result {
+                                coordinate_queue.insert(coordinates);
+                            }
+
+                            return result;
+                        })
                         .collect::<Vec<_>>(),
                 );
             }
