@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use rayon::prelude::*;
 
 use crate::chunk::{voxel::Voxel, GenerationSettings};
+use half::f16;
 use noise::{NoiseFn, OpenSimplex};
 
 pub fn generate_voxels(
@@ -16,7 +17,7 @@ pub fn generate_voxels(
 ) -> Vec<Voxel> {
     let mut voxels: Vec<Voxel> = vec![
         Voxel {
-            size: 1.0,
+            size: f16::from_f32(1.0),
             is_solid: false,
             color: Color::rgba(0.0, 0.0, 0.0, 0.0),
         };
@@ -73,7 +74,7 @@ pub fn generate_voxels(
 
                 *voxel = Voxel {
                     color,
-                    size: 1.0,
+                    size: f16::from_f32(1.0),
                     is_solid: true,
                 };
             }

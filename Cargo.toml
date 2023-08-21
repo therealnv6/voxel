@@ -39,11 +39,12 @@ rand = "0.8.5" # we're only really using this for noise generation
 
 # other
 enumset = "1.1.2"
+half = "2.3.1"
 
 [dependencies.bevy]
 version = "0.11.0"
 features = [
   "bevy_pbr", 
   "multi-threaded", 
-  "dynamic_linking"
+  # "dynamic_linking"
 ]

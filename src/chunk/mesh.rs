@@ -2,6 +2,7 @@ use bevy::{
     prelude::{Mesh, UVec3},
     render::{mesh::Indices, render_resource::PrimitiveTopology},
 };
+use half::f16;
 
 use super::{
     chunk::VoxelFace,
@@ -19,7 +20,10 @@ const INDICES_SET: [[u32; 6]; 6] = [
 ];
 
 impl Voxel {
-    pub fn mesh(&self, [x, y, z]: [f32; 3], size: f32) -> VoxelMeshData {
+    pub fn mesh(&self, [x, y, z]: [f16; 3], size: f16) -> VoxelMeshData {
+        let [x, y, z] = [x.to_f32(), y.to_f32(), z.to_f32()];
+        let size = size.to_f32();
+
         VoxelMeshData {
             vertices: vec![
                 [x, y, z],
@@ -67,7 +71,8 @@ pub fn mesh(
                 let index = (z * base_width * base_height) + (y * base_width) + x;
 
                 if let Some(voxel) = voxels.get(index as usize) {
-                    let voxel_size = voxel.size * (lod_multiplier.pow(2) as f32 + 1.0);
+                    let voxel_size = voxel.size
+                        * (f16::from_f32(lod_multiplier.pow(2) as f32) + f16::from_f32(1.0));
 
                     // not entirely sure why, but `VoxelFace::Back` and `VoxelFace::Top` have to
                     // be the other way around in comparison to the way we declared the indices,
@@ -95,9 +100,9 @@ pub fn mesh(
                     // not actually used and should always be set to 1.0 (refer to the Voxel
                     // struct for more information), we are still applying this here in case we
                     // decide to use the voxel size in the future.
-                    let x_pos = x as f32 * voxel_size;
-                    let y_pos = y as f32 * voxel_size;
-                    let z_pos = z as f32 * voxel_size;
+                    let x_pos = f16::from_f32(x as f32) * voxel_size;
+                    let y_pos = f16::from_f32(y as f32) * voxel_size;
+                    let z_pos = f16::from_f32(z as f32) * voxel_size;
 
                     let indices = voxel_faces
                         .into_iter()

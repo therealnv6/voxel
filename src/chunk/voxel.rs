@@ -1,10 +1,11 @@
 use bevy::prelude::Color;
+use half::f16;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct Voxel {
     pub color: Color,
     pub is_solid: bool,
-    pub size: f32,
+    pub size: f16,
 }
 
 pub struct VoxelMeshData {
@@ -19,8 +20,8 @@ pub struct VoxelMeshDataWithIndices {
 }
 
 impl Voxel {
+    #[inline]
     pub fn is_solid(&self) -> bool {
-        // we'll want to change this sometime
         return self.is_solid;
     }
 }

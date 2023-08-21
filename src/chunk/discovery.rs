@@ -78,6 +78,7 @@ pub fn unload_distant_chunks(
                     visibility: Visibility::Hidden,
                     ..Default::default()
                 })
+                .remove::<ChunkEntity>()
                 .remove::<PbrBundle>();
         }
     }

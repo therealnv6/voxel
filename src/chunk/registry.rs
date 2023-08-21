@@ -27,20 +27,18 @@ impl ChunkRegistry {
         }
     }
 
-    pub fn get_adjacent_chunks(&self, Coordinates { x, y, z }: Coordinates) -> Vec<Option<&Chunk>> {
+    pub fn get_adjacent_chunks(&self, Coordinates { x, y, z }: Coordinates) -> [Option<&Chunk>; 6] {
         [
-            Coordinates::new(x + 1, y, z),
-            Coordinates::new(x - 1, y, z),
-            Coordinates::new(x, y, z + 1),
-            Coordinates::new(x, y, z - 1),
-            Coordinates::new(x, y + 1, z),
-            Coordinates::new(x, y - 1, z),
+            self.get_chunk_at(Coordinates::new(x + 1, y, z)),
+            self.get_chunk_at(Coordinates::new(x - 1, y, z)),
+            self.get_chunk_at(Coordinates::new(x, y, z + 1)),
+            self.get_chunk_at(Coordinates::new(x, y, z - 1)),
+            self.get_chunk_at(Coordinates::new(x, y + 1, z)),
+            self.get_chunk_at(Coordinates::new(x, y - 1, z)),
         ]
-        .iter()
-        .map(|coordinates| self.get_chunk_at(*coordinates))
-        .collect::<Vec<Option<&Chunk>>>()
     }
 
+    #[inline]
     pub fn get_chunk_at(&self, coordinates: impl Into<Coordinates>) -> Option<&Chunk> {
         let coordinates = coordinates.into();
         let chunk_id = Self::domain_to_id(coordinates);
@@ -48,6 +46,7 @@ impl ChunkRegistry {
         return self.chunks.get(&chunk_id);
     }
 
+    #[inline]
     pub fn get_chunk_at_mut(&mut self, coordinates: impl Into<Coordinates>) -> Option<&mut Chunk> {
         let coordinates = coordinates.into();
         let chunk_id = Self::domain_to_id(coordinates);
@@ -59,7 +58,7 @@ impl ChunkRegistry {
         let coordinates = coordinates.into();
         let chunk_id = Self::domain_to_id(coordinates);
 
-        self.chunks.insert(chunk_id, chunk);
+        self.chunks.entry(chunk_id).or_insert(chunk);
     }
 
     pub fn get_all_chunks(
@@ -68,6 +67,7 @@ impl ChunkRegistry {
         return self.chunks.values_mut();
     }
 
+    #[inline]
     pub fn domain_to_id(coordinates: impl Into<Coordinates>) -> i32 {
         let IVec3 { x, y, z } = coordinates.into();
 
@@ -81,6 +81,7 @@ impl ChunkRegistry {
             + linear_z
     }
 
+    #[inline]
     pub fn id_to_domain(id: i32) -> Coordinates {
         let linear_x = id / (Self::CHUNK_GRID_SIZE * Self::CHUNK_GRID_SIZE);
         let linear_y =
@@ -95,6 +96,7 @@ impl ChunkRegistry {
         )
     }
 
+    #[inline]
     pub fn get_chunk_center(coordinates: impl Into<Coordinates>) -> Coordinates {
         let chunk_id = Self::domain_to_id(coordinates);
         let chunk_domain = Self::id_to_domain(chunk_id);
@@ -106,6 +108,7 @@ impl ChunkRegistry {
         Coordinates::new(center_x, center_y, center_z)
     }
 }
+
 #[cfg(test)]
 pub mod test {
     use super::ChunkRegistry;

@@ -1,4 +1,6 @@
-use bevy::prelude::*;
+use std::sync::{Arc, RwLock};
+
+use bevy::{prelude::*, utils::HashSet};
 use bevy_tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
 use rayon::prelude::*;
@@ -9,6 +11,8 @@ use crate::chunk::{
     registry::{ChunkRegistry, Coordinates},
     DiscoverySettings,
 };
+
+pub const QUEUE_PROCESS_LIMIT: usize = 24;
 
 use super::{draw::ChunkDrawEvent, gen::ChunkGenerateEvent, mesh::ChunkMeshEvent};
 
@@ -92,6 +96,13 @@ fn spawn_discovery_task(
     })
 }
 
+pub enum ProcessWriterType {
+    MeshWriter(ChunkMeshEvent),
+    DrawWriter(ChunkDrawEvent),
+    GenerateWriter(ChunkGenerateEvent),
+    ChunkCreationWriter(ChunkCreateEvent),
+}
+
 pub fn process_discovery_tasks(
     mut commands: Commands,
     mut tasks: Query<(Entity, &mut ChunkDiscoveryTask)>,
@@ -99,59 +110,107 @@ pub fn process_discovery_tasks(
     mut generate_writer: EventWriter<ChunkGenerateEvent>,
     mut draw_writer: EventWriter<ChunkDrawEvent>,
     mut mesh_writer: EventWriter<ChunkMeshEvent>,
-    mut registry: ResMut<ChunkRegistry>,
-    discovery_settings: Res<DiscoverySettings>,
+    mut process_queue: Local<Vec<ProcessWriterType>>,
+    // is it worth to use a HashSet for this instead of a Vec?
+    coordinate_queue: Local<Arc<RwLock<HashSet<Coordinates>>>>,
+    registry: Res<ChunkRegistry>,
 ) {
-    tasks.iter_mut().for_each(|(entity, mut task)| {
-        if let Some(data) = future::block_on(future::poll_once(&mut task.0)) {
-            commands.entity(entity).remove::<ChunkDiscoveryTask>();
+    let mut result = tasks
+        .iter_mut()
+        .flat_map(|(entity, mut task)| {
+            if let Some(data) = future::block_on(future::poll_once(&mut task.0)) {
+                commands.entity(entity).remove::<ChunkDiscoveryTask>();
 
-            for (
-                IVec3 { x, y, z },
-                IVec3 {
-                    x: x_offset,
-                    y: y_offset,
-                    z: z_offset,
-                },
-            ) in data
-            {
-                let chunk = registry.get_chunk_at_mut([x, y, z]);
-                let coordinates = Coordinates::new(x, y, z);
+                let registry = registry.clone();
+                let coordinate_queue = coordinate_queue.clone();
 
-                match chunk {
-                    Some(chunk) => {
-                        if discovery_settings.lod {
-                            chunk.set_lod({
-                                if x_offset >= y_offset && x_offset >= z_offset {
-                                    x_offset
-                                } else if y_offset >= x_offset && y_offset >= z_offset {
-                                    y_offset
-                                } else {
-                                    z_offset
+                return Some(
+                    data.into_par_iter()
+                        .flat_map(
+                            move |(
+                                IVec3 { x, y, z },
+                                // we might need this eventually, but has gone unused for the time
+                                // being. don't remove this please!
+                                IVec3 {
+                                    x: _x_offset,
+                                    y: _y_offset,
+                                    z: _z_offset,
+                                },
+                            )| {
+                                let chunk = registry.get_chunk_at([x, y, z]);
+                                let coordinates = Coordinates::new(x, y, z);
+
+                                let Ok(mut coordinate_queue) = coordinate_queue.write() else {
+                                    return None;
+                                };
+
+                                if coordinate_queue.contains(&coordinates) {
+                                    return None;
                                 }
-                            } as u32);
-                        }
 
-                        let flags = chunk.get_flags();
+                                let result = match chunk {
+                                    Some(chunk) => {
+                                        let flags = chunk.get_flags();
 
-                        if flags.contains(ChunkFlags::Busy) {
-                            continue;
-                        }
+                                        if flags.contains(ChunkFlags::Busy) {
+                                            None
+                                        } else if !flags.contains(ChunkFlags::Generated) {
+                                            Some(ProcessWriterType::GenerateWriter(
+                                                ChunkGenerateEvent { coordinates },
+                                            ))
+                                        } else if flags.contains(ChunkFlags::Meshed)
+                                            && !flags.contains(ChunkFlags::Drawn)
+                                        {
+                                            Some(ProcessWriterType::DrawWriter(ChunkDrawEvent {
+                                                coordinates,
+                                            }))
+                                        } else if flags.contains(ChunkFlags::Dirty) {
+                                            Some(ProcessWriterType::MeshWriter(ChunkMeshEvent {
+                                                coordinates,
+                                            }))
+                                        } else {
+                                            None
+                                        }
+                                    }
+                                    None => {
+                                        return Some(ProcessWriterType::ChunkCreationWriter(
+                                            ChunkCreateEvent { coordinates },
+                                        ));
+                                    }
+                                };
 
-                        if !flags.contains(ChunkFlags::Generated) {
-                            generate_writer.send(ChunkGenerateEvent { coordinates });
-                        }
+                                if let Some(_) = result {
+                                    coordinate_queue.insert(coordinates);
+                                }
 
-                        if flags.contains(ChunkFlags::Meshed) && !flags.contains(ChunkFlags::Drawn)
-                        {
-                            draw_writer.send(ChunkDrawEvent { coordinates });
-                        } else if flags.contains(ChunkFlags::Dirty) {
-                            mesh_writer.send(ChunkMeshEvent { coordinates });
-                        }
-                    }
-                    None => chunk_creation_writer.send(ChunkCreateEvent { coordinates }),
-                }
+                                return result;
+                            },
+                        )
+                        .collect::<Vec<_>>(),
+                );
             }
+            return None;
+        })
+        // we simply flatten once to remove the double Vec
+        .flatten()
+        .collect::<Vec<_>>();
+
+    if !result.is_empty() {
+        process_queue.append(&mut result);
+    }
+
+    // this slows down chunk loading, but the fps improvement far exceeds it.
+    let length = process_queue.len();
+    let range = 0..length.min(QUEUE_PROCESS_LIMIT);
+
+    let iter = process_queue.drain(range);
+
+    for writer_type in iter {
+        match writer_type {
+            ProcessWriterType::GenerateWriter(event) => generate_writer.send(event),
+            ProcessWriterType::MeshWriter(event) => mesh_writer.send(event),
+            ProcessWriterType::DrawWriter(event) => draw_writer.send(event),
+            ProcessWriterType::ChunkCreationWriter(event) => chunk_creation_writer.send(event),
         }
-    });
+    }
 }
