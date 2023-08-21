@@ -10,8 +10,13 @@ a simple voxel game "engine" written in Rust, using
 - [x] 3D chunk registry
 - [x] 3D noise generation
 - [ ] LOD
-  - Face culling is completely broken in LOD, which means it's basically
-    unusable. Haven't really taken the time to look into this.
+  - ~~Face culling is completely broken in LOD, which means it's basically
+    unusable. Haven't really taken the time to look into this.~~
+  - This is completely disabled for now. It accessed the ChunkRegistry mutably
+    within the chunk discovery function, which had to be changed due to
+    slowdowns when processing the chunk discovery queue. We could perhaps
+    actively change the LOD of the loaded chunks instead
+    (`Query<Entity, With<LoadedChunk>>` should suffice).
 - [ ] Good performance.
   - Performance is "acceptable" at best. It runs fine at 8x6 discovery radius,
     but you can clearly see the unrendered chunks which... is very suboptimal.
