@@ -46,5 +46,5 @@ version = "0.11.0"
 features = [
   "bevy_pbr", 
   "multi-threaded", 
-  # "dynamic_linking"
+  "dynamic_linking"
 ]

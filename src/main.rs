@@ -53,7 +53,10 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(
             Update,
-            ui::inspector_ui.run_if(input_toggle_active(true, KeyCode::Escape)),
+            (
+                ui::inspector_ui.run_if(input_toggle_active(true, KeyCode::Escape)),
+                animate_light_direction,
+            ),
         )
         .run();
 }
@@ -93,4 +96,13 @@ fn setup(mut commands: Commands) {
             Vec3::new(0., 0., 0.),
             Vec3::Y,
         ));
+}
+
+fn animate_light_direction(
+    time: Res<Time>,
+    mut query: Query<&mut Transform, With<DirectionalLight>>,
+) {
+    for mut transform in &mut query {
+        transform.rotate_y(time.delta_seconds() * 0.5);
+    }
 }
