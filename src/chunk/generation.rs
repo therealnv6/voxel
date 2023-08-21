@@ -6,7 +6,7 @@ use half::f16;
 use noise::{NoiseFn, OpenSimplex};
 
 pub fn generate_voxels(
-    settings: GenerationSettings,
+    settings: &GenerationSettings,
     simplex: OpenSimplex,
     IVec3 {
         x: world_pos_x,

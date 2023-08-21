@@ -58,13 +58,13 @@ pub fn handle_chunk_discovery(
     commands.spawn(ChunkDiscoveryTask(task));
 }
 
-pub fn is_in_frustum_batch(
+pub fn is_in_frustum_batch<const SIZE: usize>(
     points: impl IntoIterator<Item = impl Into<Vec3A>>,
     spaces: [HalfSpace; 6],
-) -> Vec<bool> {
-    let mut results = Vec::new();
+) -> [bool; SIZE] {
+    let mut results = [false; SIZE];
 
-    for point in points {
+    for (index, point) in points.into_iter().enumerate() {
         let point = point.into();
         let mut is_inside = true;
 
@@ -78,7 +78,7 @@ pub fn is_in_frustum_batch(
             }
         }
 
-        results.push(is_inside);
+        results[index] = is_inside;
     }
 
     results
@@ -126,7 +126,7 @@ fn spawn_discovery_task(
                                 ];
 
                                 // very simple frustum culling, nothing special
-                                if is_in_frustum_batch(points, spaces)
+                                if is_in_frustum_batch::<2>(points, spaces)
                                     .iter()
                                     .filter(|result| **result)
                                     .last()
@@ -161,7 +161,7 @@ pub fn process_discovery_tasks(
     mut mesh_writer: EventWriter<ChunkMeshEvent>,
     mut process_queue: Local<Vec<ProcessWriterType>>,
     // is it worth to use a HashSet for this instead of a Vec?
-    coordinate_queue: Local<Arc<RwLock<HashSet<Coordinates>>>>,
+    mut coordinate_queue: Local<RwLock<HashSet<Coordinates>>>,
     registry: Res<ChunkRegistry>,
 ) {
     let mut result = tasks
@@ -170,8 +170,8 @@ pub fn process_discovery_tasks(
             if let Some(data) = future::block_on(future::poll_once(&mut task.0)) {
                 commands.entity(entity).remove::<ChunkDiscoveryTask>();
 
-                let registry = registry.clone();
-                let coordinate_queue = coordinate_queue.clone();
+                let registry = &registry;
+                let coordinate_queue = &mut coordinate_queue;
 
                 return Some(
                     data.into_par_iter()

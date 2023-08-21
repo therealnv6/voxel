@@ -37,13 +37,13 @@ pub fn generate_chunk(
         chunk.set_busy(true);
 
         let settings = settings.clone();
-        let simplex = simplex.0.clone();
+        let simplex = simplex.0;
 
         let world_position = chunk.world_position;
 
         let task = pool.spawn(async move {
             let voxels = generate_voxels(
-                settings,
+                &settings,
                 simplex,
                 world_position,
                 (
