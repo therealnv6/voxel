@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use bevy_egui::EguiContext;
 use bevy_window::PrimaryWindow;
-use egui::{Checkbox, Color32, Slider};
+use egui::{Color32, Slider};
 
 use crate::chunk::{registry::ChunkRegistry, DiscoverySettings, GenerationSettings, MeshSettings};
 
