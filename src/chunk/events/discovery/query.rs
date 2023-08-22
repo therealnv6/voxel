@@ -1,5 +1,3 @@
-
-
 use bevy::{
     math::Vec3A,
     prelude::*,
@@ -9,9 +7,12 @@ use bevy_tasks::{AsyncComputeTaskPool, Task};
 
 use rayon::prelude::*;
 
-use crate::chunk::{
-    registry::{ChunkRegistry, Coordinates},
-    DiscoverySettings,
+use crate::{
+    chunk::{
+        registry::{ChunkRegistry, Coordinates},
+        DiscoverySettings,
+    },
+    util::frustum::is_in_frustum_batch,
 };
 
 use super::ChunkDiscoveryTask;
@@ -47,32 +48,6 @@ pub fn handle_chunk_discovery(
     commands.spawn(ChunkDiscoveryTask(task));
 }
 
-pub fn is_in_frustum_batch<const SIZE: usize>(
-    points: impl IntoIterator<Item = impl Into<Vec3A>>,
-    spaces: [HalfSpace; 6],
-) -> [bool; SIZE] {
-    let mut results = [false; SIZE];
-
-    for (index, point) in points.into_iter().enumerate() {
-        let point = point.into();
-        let mut is_inside = true;
-
-        for space in &spaces {
-            let normal = space.normal();
-            let distance = space.d();
-
-            if normal.dot(point) + distance < 0.0 {
-                is_inside = false;
-                break; // No need to check other spaces for this point
-            }
-        }
-
-        results[index] = is_inside;
-    }
-
-    results
-}
-
 fn spawn_discovery_task(
     (center_chunk_x, center_chunk_y, center_chunk_z): (i32, i32, i32),
     (radius, radius_height): (i32, i32),
@@ -101,21 +76,24 @@ fn spawn_discovery_task(
 
                                 let points: [Vec3A; 2] = [
                                     Coordinates {
-                                        x: x - size,
-                                        y: y - height,
-                                        z: z - size,
+                                        x: x - (size + 1),
+                                        y: y - (height + 1),
+                                        z: z - (size + 1),
                                     }
                                     .as_vec3a(),
                                     Coordinates {
-                                        x: x + size,
-                                        y: y + height,
-                                        z: z + size,
+                                        x: x + (size + 1),
+                                        y: y + (height + 1),
+                                        z: z + (size + 1),
                                     }
                                     .as_vec3a(),
                                 ];
 
-                                // very simple frustum culling, nothing special
-                                if is_in_frustum_batch::<2>(points, spaces)
+                                // very simple frustum culling, nothing special.
+                                // this does not seem to be completely correct; the corners of the
+                                // frustum still seem to get culled, are the half_spaces wrong, or
+                                // is something else wrong? it works for now, so whatever!
+                                if is_in_frustum_batch::<2>(points, spaces, -4.0)
                                     .iter()
                                     .filter(|result| **result)
                                     .last()

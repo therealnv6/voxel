@@ -1,5 +1,3 @@
-
-
 use crate::chunk::{
     registry::{ChunkRegistry, Coordinates},
     ChunkEntity,
@@ -40,17 +38,6 @@ pub fn draw_chunks(
             let entity = chunk.get_entity().expect("entity not found");
             let mut entity_mut = commands.entity(entity);
 
-            let tween = Tween::new(
-                EaseFunction::QuadraticIn,
-                std::time::Duration::from_millis(300),
-                TransformPositionLens {
-                    start: Vec3::new(x as f32, y as f32 - 10.0, z as f32),
-                    end: Vec3::new(x as f32, y as f32, z as f32),
-                },
-            )
-            .with_repeat_count(RepeatCount::Finite(1))
-            .with_repeat_strategy(RepeatStrategy::MirroredRepeat);
-
             // taken this from my old implementation, is this bad?
             entity_mut
                 .remove::<Visibility>()
@@ -66,7 +53,6 @@ pub fn draw_chunks(
                         transform: Transform::from_xyz(x as f32, y as f32, z as f32),
                         ..Default::default()
                     },
-                    Animator::new(tween),
                 ));
 
             chunk.set_drawn(true);

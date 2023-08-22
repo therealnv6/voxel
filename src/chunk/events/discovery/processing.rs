@@ -26,8 +26,18 @@ pub fn process_discovery_tasks(
     mut process_queue: Local<Vec<ProcessWriterType>>,
     // is it worth to use a HashSet for this instead of a Vec?
     mut coordinate_queue: Local<RwLock<HashSet<Coordinates>>>,
+    mut last_time: Local<u128>,
     registry: Res<ChunkRegistry>,
+    time: Res<Time>,
 ) {
+    // clear the coordinate_queue
+    if (time.elapsed().as_millis() - *last_time) >= 150 {
+        if let Ok(mut coordinate_queue) = coordinate_queue.write() {
+            coordinate_queue.clear();
+            *last_time = time.elapsed().as_millis();
+        }
+    }
+
     let mut result = tasks
         .iter_mut()
         .flat_map(|(entity, mut task)| {
@@ -43,8 +53,8 @@ pub fn process_discovery_tasks(
                             let chunk = registry.get_chunk_at(coordinates);
 
                             let Ok(mut coordinate_queue) = coordinate_queue.write() else {
-                                    return None;
-                                };
+                                 return None;
+                            };
 
                             if coordinate_queue.contains(&coordinates) {
                                 return None;
