@@ -74,9 +74,9 @@ fn setup(mut commands: Commands) {
             ..default()
         },
         cascade_shadow_config: CascadeShadowConfigBuilder {
-            num_cascades: 2,
+            num_cascades: 3,
             first_cascade_far_bound: 4.0,
-            maximum_distance: 80.0,
+            maximum_distance: 500.0,
             ..default()
         }
         .into(),

@@ -65,8 +65,8 @@ impl Plugin for ChunkPlugin {
                 occlusion_culling: true,
             })
             .insert_resource(DiscoverySettings {
-                discovery_radius: 1,
-                discovery_radius_height: 1,
+                discovery_radius: 4,
+                discovery_radius_height: 4,
                 // we'll disable this by default, as it's kinda broken.
                 // turning this on makes testing relatively hard due to the absence of proper face/occlusion culling
                 lod: false,
@@ -92,8 +92,8 @@ impl Plugin for ChunkPlugin {
                     events::mesh::mesh_chunk.run_if(on_event::<ChunkMeshEvent>()),
                     events::mesh::process_chunk_meshing,
                     events::gen::process_chunk_generation,
-                    events::discovery::process_discovery_tasks,
-                    events::discovery::handle_chunk_discovery
+                    events::discovery::processing::process_discovery_tasks,
+                    events::discovery::query::handle_chunk_discovery
                         .run_if(input_toggle_active(true, KeyCode::L)),
                     discovery::unload_distant_chunks.run_if(input_toggle_active(true, KeyCode::M)),
                 ),
