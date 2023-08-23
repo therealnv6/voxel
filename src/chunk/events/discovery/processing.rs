@@ -25,14 +25,15 @@ pub fn process_discovery_tasks(
     mut mesh_writer: EventWriter<ChunkMeshEvent>,
     mut process_queue: Local<Vec<ProcessWriterType>>,
     // is it worth to use a HashSet for this instead of a Vec?
-    mut coordinate_queue: Local<RwLock<HashSet<Coordinates>>>,
+    mut process_list: Local<RwLock<HashSet<Coordinates>>>,
     mut last_time: Local<u128>,
     registry: Res<ChunkRegistry>,
     time: Res<Time>,
 ) {
-    // clear the coordinate_queue
-    if (time.elapsed().as_millis() - *last_time) >= 150 {
-        if let Ok(mut coordinate_queue) = coordinate_queue.write() {
+    // clear the coordinate process list, we'll do this every 150 milliseconds,
+    // less could probably work, but can't really tell too big of a difference.
+    if time.elapsed().as_millis() - *last_time >= 150 {
+        if let Ok(mut coordinate_queue) = process_list.write() {
             coordinate_queue.clear();
             *last_time = time.elapsed().as_millis();
         }
@@ -45,7 +46,7 @@ pub fn process_discovery_tasks(
                 commands.entity(entity).remove::<ChunkDiscoveryTask>();
 
                 let registry = &registry;
-                let coordinate_queue = &mut coordinate_queue;
+                let coordinate_queue = &mut process_list;
 
                 return Some(
                     data.into_par_iter()

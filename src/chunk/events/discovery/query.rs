@@ -12,7 +12,7 @@ use crate::{
         registry::{ChunkRegistry, Coordinates},
         DiscoverySettings,
     },
-    util::frustum::is_in_frustum_batch,
+    util::frustum::{create_frustum_points, is_in_frustum_batch, is_in_frustum_batch_unsized},
 };
 
 use super::ChunkDiscoveryTask;
@@ -49,64 +49,48 @@ pub fn handle_chunk_discovery(
 }
 
 fn spawn_discovery_task(
-    (center_chunk_x, center_chunk_y, center_chunk_z): (i32, i32, i32),
-    (radius, radius_height): (i32, i32),
-    (chunk_size, chunk_height): (f32, f32),
+    center_chunk: (i32, i32, i32),
+    radius: (i32, i32),
+    chunk_sizes: (f32, f32),
     frustum: &Frustum,
 ) -> Task<Vec<Coordinates>> {
     let pool = AsyncComputeTaskPool::get();
     let spaces = frustum.half_spaces;
 
     pool.spawn(async move {
-        (-radius..=radius)
-            .into_par_iter()
+        (-radius.0..=radius.0)
             .flat_map(|x_offset| {
-                (-radius_height..=radius_height)
-                    .flat_map(move |y_offset| {
-                        (-radius..=radius)
-                            .filter_map(move |z_offset| {
-                                let size = ChunkRegistry::CHUNK_SIZE;
-                                let height = ChunkRegistry::CHUNK_HEIGHT;
+                (-radius.1..=radius.1).flat_map(move |y_offset| {
+                    (-radius.0..=radius.0).filter_map(move |z_offset| {
+                        let chunk_size = chunk_sizes.0 as i32;
+                        let chunk_height = chunk_sizes.1 as i32;
+                        let size = ChunkRegistry::CHUNK_SIZE;
+                        let height = ChunkRegistry::CHUNK_HEIGHT;
 
-                                let x = (center_chunk_x + x_offset) * chunk_size as i32;
-                                let y = (center_chunk_y + y_offset) * chunk_height as i32;
-                                let z = (center_chunk_z + z_offset) * chunk_size as i32;
+                        let x = (center_chunk.0 + x_offset) * chunk_size;
+                        let y = (center_chunk.1 + y_offset) * chunk_height;
+                        let z = (center_chunk.2 + z_offset) * chunk_size;
 
-                                let point = Coordinates { x, y, z };
+                        let point = Coordinates { x, y, z };
+                        let points =
+                            create_frustum_points((x, y, z).into(), (size, height, size).into());
 
-                                let points: [Vec3A; 2] = [
-                                    Coordinates {
-                                        x: x - (size + 1),
-                                        y: y - (height + 1),
-                                        z: z - (size + 1),
-                                    }
-                                    .as_vec3a(),
-                                    Coordinates {
-                                        x: x + (size + 1),
-                                        y: y + (height + 1),
-                                        z: z + (size + 1),
-                                    }
-                                    .as_vec3a(),
-                                ];
+                        // very simple frustum culling, nothing special.
+                        // this does not seem to be completely correct; the corners of the
+                        // frustum still seem to get culled, are the half_spaces wrong, or
+                        // is something else wrong? it works for now, so whatever!
+                        if is_in_frustum_batch_unsized(points, spaces, 0.0)
+                            .iter()
+                            .filter(|result| **result)
+                            .next()
+                            .is_none()
+                        {
+                            return None;
+                        }
 
-                                // very simple frustum culling, nothing special.
-                                // this does not seem to be completely correct; the corners of the
-                                // frustum still seem to get culled, are the half_spaces wrong, or
-                                // is something else wrong? it works for now, so whatever!
-                                if is_in_frustum_batch::<2>(points, spaces, -4.0)
-                                    .iter()
-                                    .filter(|result| **result)
-                                    .last()
-                                    .is_none()
-                                {
-                                    return None;
-                                }
-
-                                Some(point)
-                            })
-                            .collect::<Vec<Coordinates>>()
+                        Some(point)
                     })
-                    .collect::<Vec<Coordinates>>()
+                })
             })
             .collect()
     })

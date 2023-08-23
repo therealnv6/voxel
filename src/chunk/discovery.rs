@@ -2,10 +2,8 @@ use bevy::{math::Vec3A, prelude::*, render::primitives::Frustum};
 
 use crate::{
     chunk::{registry::ChunkRegistry, ChunkEntity, DiscoverySettings},
-    util::frustum::is_in_frustum_batch,
+    util::frustum::{create_frustum_points, is_in_frustum_batch, is_in_frustum_batch_unsized},
 };
-
-use super::registry::Coordinates;
 
 /// Unload Distant Chunks System
 ///
@@ -67,26 +65,14 @@ pub fn unload_distant_chunks(
         let diff_y = (dist_y - trans_y).abs();
         let diff_z = (dist_z - trans_z).abs();
 
-        let points: [Vec3A; 2] = [
-            Coordinates {
-                x: pos_x - (size + 1),
-                y: pos_y - (height + 1),
-                z: pos_z - (size + 1),
-            }
-            .as_vec3a(),
-            Coordinates {
-                x: pos_x + (size + 1),
-                y: pos_y + (height + 1),
-                z: pos_z + (size + 1),
-            }
-            .as_vec3a(),
-        ];
+        let points =
+            create_frustum_points((*pos_x, *pos_y, *pos_z).into(), (size, height, size).into());
 
         if diff_x - 1.0 > discovery_settings.discovery_radius.into()
             || diff_z - 1.0 > discovery_settings.discovery_radius.into()
             || diff_y - 1.0 > discovery_settings.discovery_radius_height.into()
             // also unload the chunks if they are out of vision
-            || is_in_frustum_batch::<2>(points, frustum.half_spaces, -8.0)
+            || is_in_frustum_batch_unsized(points, frustum.half_spaces, 0.0)
                 .iter()
                 .filter(|result| **result)
                 .next()
