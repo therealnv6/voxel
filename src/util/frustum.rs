@@ -273,41 +273,31 @@ pub fn create_frustum_points(
     }: IVec3,
 ) -> [Vec3A; get_frustum_point_amount()] {
     [
-        Coordinates {
-            x: pos_x - (width + 1),
-            y: pos_y - (height + 1),
-            z: pos_z - (depth + 1),
-        }
-        .as_vec3a(),
-        Coordinates {
-            x: pos_x + (width + 1),
-            y: pos_y + (height + 1),
-            z: pos_z + (depth + 1),
-        }
-        .as_vec3a(),
-        Coordinates {
-            x: pos_x + (width + 1),
-            y: pos_y - (height + 1),
-            z: pos_z + (depth + 1),
-        }
-        .as_vec3a(),
-        Coordinates {
-            x: pos_x - (width + 1),
-            y: pos_y + (height + 1),
-            z: pos_z - (depth + 1),
-        }
-        .as_vec3a(),
-        Coordinates {
-            x: pos_x + (width + 1),
-            y: pos_y + (height + 1),
-            z: pos_z - (depth + 1),
-        }
-        .as_vec3a(),
-        Coordinates {
-            x: pos_x,
-            y: pos_y,
-            z: pos_z,
-        }
-        .as_vec3a(),
+        Vec3A::new(
+            (pos_x - width) as f32,
+            (pos_y - height) as f32,
+            (pos_z - depth) as f32,
+        ),
+        Vec3A::new(
+            (pos_x + width) as f32,
+            (pos_y + height) as f32,
+            (pos_z + depth) as f32,
+        ),
+        Vec3A::new(
+            (pos_x + width) as f32,
+            (pos_y - height) as f32,
+            (pos_z + depth) as f32,
+        ),
+        Vec3A::new(
+            (pos_x - width) as f32,
+            (pos_y + height) as f32,
+            (pos_z - depth) as f32,
+        ),
+        Vec3A::new(
+            (pos_x + width) as f32,
+            (pos_y + height) as f32,
+            (pos_z - depth) as f32,
+        ),
+        Vec3A::new(pos_x as f32, pos_y as f32, pos_z as f32),
     ]
 }

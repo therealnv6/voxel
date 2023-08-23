@@ -35,8 +35,8 @@ a simple voxel game "engine" written in Rust, using
     MHz
 
 [^2]:
-    8x4x8 in a 18x18x18 chunk hierarchy; meaning 8 chunks _ 4 chunks _ 8
-    chunks _ 18 voxels _ 18 voxels \* 18 voxels = 3,686,400 voxels. [^5]
+    8x4x8 in a 18x18x18 chunk hierarchy; meaning 8 chunks \* 4 chunks \* 8
+    chunks \* 18 voxels \* 18 voxels \* 18 voxels = 3,686,400 voxels. [^5]
 
 [^3]:
     Face culling is completely broken in LOD, which means it's basically
