@@ -30,8 +30,6 @@ a simple voxel game "engine" written in Rust, using
   - Low priorty. Currently, we're just generating random "canyons" with 3D
     simplex noise, barely processed.
 
-* Extra info
-
 [^1]:
     This is based on my personal computer; i7 10700k, RTX 3070, 16 GB @3600
     MHz
