@@ -1,7 +1,6 @@
 use bevy::{
-    math::Vec3A,
     prelude::*,
-    render::primitives::{Frustum, HalfSpace},
+    render::primitives::{Frustum},
 };
 use bevy_tasks::{AsyncComputeTaskPool, Task};
 
@@ -12,7 +11,7 @@ use crate::{
         registry::{ChunkRegistry, Coordinates},
         DiscoverySettings,
     },
-    util::frustum::{create_frustum_points, is_in_frustum_batch, is_in_frustum_batch_unsized},
+    util::frustum::{create_frustum_points, is_in_frustum_batch_unsized},
 };
 
 use super::ChunkDiscoveryTask;

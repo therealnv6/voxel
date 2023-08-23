@@ -1,8 +1,8 @@
-use bevy::{math::Vec3A, prelude::*, render::primitives::Frustum};
+use bevy::{prelude::*, render::primitives::Frustum};
 
 use crate::{
     chunk::{registry::ChunkRegistry, ChunkEntity, DiscoverySettings},
-    util::frustum::{create_frustum_points, is_in_frustum_batch, is_in_frustum_batch_unsized},
+    util::frustum::{create_frustum_points, is_in_frustum_batch_unsized},
 };
 
 /// Unload Distant Chunks System
