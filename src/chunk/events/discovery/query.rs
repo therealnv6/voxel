@@ -1,10 +1,5 @@
-use bevy::{
-    prelude::*,
-    render::primitives::{Frustum},
-};
+use bevy::{prelude::*, render::primitives::Frustum};
 use bevy_tasks::{AsyncComputeTaskPool, Task};
-
-use rayon::prelude::*;
 
 use crate::{
     chunk::{

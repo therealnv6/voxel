@@ -1,4 +1,4 @@
-use std::sync::RwLock;
+use std::sync::{RwLock, RwLockWriteGuard};
 
 use crate::chunk::events::discovery::QUEUE_PROCESS_LIMIT;
 use crate::chunk::events::draw::ChunkDrawEvent;
@@ -11,6 +11,7 @@ use crate::chunk::{
 };
 use bevy::prelude::*;
 use bevy::utils::HashSet;
+use enumset::EnumSet;
 use futures_lite::future;
 use rayon::prelude::*;
 
@@ -46,64 +47,25 @@ pub fn process_discovery_tasks(
                 commands.entity(entity).remove::<ChunkDiscoveryTask>();
 
                 let registry = &registry;
-                let coordinate_queue = &mut process_list;
+                let process_list = &mut process_list;
 
-                return Some(
-                    data.into_par_iter()
-                        .flat_map(move |coordinates| {
-                            let chunk = registry.get_chunk_at(coordinates);
+                let result = data
+                    .into_par_iter()
+                    .flat_map(move |coordinates| {
+                        let mut process_list = process_list.write().ok()?;
 
-                            let Ok(mut coordinate_queue) = coordinate_queue.write() else {
-                                 return None;
-                            };
+                        if process_list.contains(&coordinates) {
+                            return None;
+                        }
 
-                            if coordinate_queue.contains(&coordinates) {
-                                return None;
-                            }
+                        process_event_data(coordinates, registry, &mut process_list)
+                    })
+                    .collect::<Vec<_>>();
 
-                            let result = match chunk {
-                                Some(chunk) => {
-                                    let flags = chunk.get_flags();
-
-                                    if flags.contains(ChunkFlags::Busy) {
-                                        None
-                                    } else if !flags.contains(ChunkFlags::Generated) {
-                                        Some(ProcessWriterType::GenerateWriter(
-                                            ChunkGenerateEvent { coordinates },
-                                        ))
-                                    } else if flags.contains(ChunkFlags::Meshed)
-                                        && !flags.contains(ChunkFlags::Drawn)
-                                    {
-                                        Some(ProcessWriterType::DrawWriter(ChunkDrawEvent {
-                                            coordinates,
-                                        }))
-                                    } else if flags.contains(ChunkFlags::Dirty) {
-                                        Some(ProcessWriterType::MeshWriter(ChunkMeshEvent {
-                                            coordinates,
-                                        }))
-                                    } else {
-                                        None
-                                    }
-                                }
-                                None => {
-                                    return Some(ProcessWriterType::ChunkCreationWriter(
-                                        ChunkCreateEvent { coordinates },
-                                    ));
-                                }
-                            };
-
-                            if let Some(_) = result {
-                                coordinate_queue.insert(coordinates);
-                            }
-
-                            return result;
-                        })
-                        .collect::<Vec<_>>(),
-                );
+                return Some(result);
             }
             return None;
         })
-        // we simply flatten once to remove the double Vec
         .flatten()
         .collect::<Vec<_>>();
 
@@ -125,4 +87,57 @@ pub fn process_discovery_tasks(
             ProcessWriterType::ChunkCreationWriter(event) => chunk_creation_writer.send(event),
         }
     }
+}
+
+fn process_event_data(
+    coordinates: Coordinates,
+    registry: &ChunkRegistry,
+    process_list: &mut RwLockWriteGuard<'_, HashSet<IVec3>>,
+) -> Option<ProcessWriterType> {
+    let Some(chunk) = registry.get_chunk_at(coordinates) else {
+        let event = ChunkCreateEvent { coordinates };
+        let writer = ProcessWriterType::ChunkCreationWriter(event);
+
+        return Some(writer);
+    };
+
+    let result = process_flags(coordinates, chunk.get_flags());
+
+    if let Some(_) = result {
+        process_list.insert(coordinates);
+    }
+
+    return result;
+}
+
+fn process_flags(
+    coordinates: Coordinates,
+    flags: EnumSet<ChunkFlags>,
+) -> Option<ProcessWriterType> {
+    if flags.contains(ChunkFlags::Busy) {
+        return None;
+    }
+
+    if !flags.contains(ChunkFlags::Generated) {
+        let event = ChunkGenerateEvent { coordinates };
+        let writer = ProcessWriterType::GenerateWriter(event);
+
+        return Some(writer);
+    }
+
+    if flags.contains(ChunkFlags::Meshed) && !flags.contains(ChunkFlags::Drawn) {
+        let event = ChunkDrawEvent { coordinates };
+        let writer = ProcessWriterType::DrawWriter(event);
+
+        return Some(writer);
+    }
+
+    if flags.contains(ChunkFlags::Dirty) {
+        let event = ChunkMeshEvent { coordinates };
+        let writer = ProcessWriterType::MeshWriter(event);
+
+        return Some(writer);
+    }
+
+    None
 }

@@ -4,7 +4,7 @@ use crate::chunk::{
 };
 
 use bevy::prelude::*;
-use bevy_tweening::{*};
+use bevy_tweening::*;
 
 #[derive(Event)]
 pub struct ChunkDrawEvent {
