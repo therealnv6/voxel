@@ -16,10 +16,10 @@ pub struct ChunkRegistry {
 pub type Coordinates = IVec3;
 
 impl ChunkRegistry {
-    pub const CHUNK_SIZE: i32 = 18;
-    pub const CHUNK_HEIGHT: i32 = 18;
+    pub const CHUNK_SIZE: i32 = 32;
+    pub const CHUNK_HEIGHT: i32 = 32;
 
-    pub const CHUNK_GRID_SIZE: i32 = 1024;
+    pub const CHUNK_GRID_SIZE: i32 = (i32::MAX / 48000) - 5;
 
     pub fn new() -> Self {
         Self {

@@ -56,6 +56,10 @@ fn spawn_discovery_task(
             .flat_map(|x_offset| {
                 (-radius.0..=radius.0).flat_map(move |z_offset| {
                     (-radius.1..=radius.1).filter_map(move |y_offset| {
+                        if x_offset.pow(2) + z_offset.pow(2) >= radius.0.pow(2) {
+                            return None;
+                        }
+
                         let chunk_size = chunk_sizes.0 as i32;
                         let chunk_height = chunk_sizes.1 as i32;
                         let size = ChunkRegistry::CHUNK_SIZE;

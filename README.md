@@ -16,9 +16,9 @@ a simple voxel game "engine" written in Rust, using
 - [ ] Good performance.
   - Currently, performance scales pretty bad. 8x4x8[^2] discovery radius rather
     easily achieves framerates of ~1500[^1], whereas 8x8x8 gets around ~700[^1],
-    and 12x12x12 gets ~130[^1]. A big part here is still not having LOD
-    implemented, and not culling the occluded faces that are only occluded by
-    the adjacent chunk(s).
+    and 12x12x12 gets ~130[^1]. 6x6x6[^5] discovery radius manages to achieve
+    ~800. A big part here is still not having LOD implemented, and not culling
+    the occluded faces that are only occluded by the adjacent chunk(s).
 - [ ] Face culling
   - [x] Per-chunk occlusion culling (cpu-based)
   - [ ] Neighboring chunk occlusion culling (cpu-based)
@@ -36,8 +36,7 @@ a simple voxel game "engine" written in Rust, using
 
 [^2]:
     8x4x8 in a 18x18x18 chunk hierarchy; meaning 8 chunks _ 4 chunks _ 8
-    chunks _ 18 voxels _ 18 voxels \* 18 voxels = 3,686,400 voxels. This is worst case
-    scenario, which can never really happen due to face culling.
+    chunks _ 18 voxels _ 18 voxels \* 18 voxels = 3,686,400 voxels. [^6]
 
 [^3]:
     Face culling is completely broken in LOD, which means it's basically
@@ -49,3 +48,11 @@ a simple voxel game "engine" written in Rust, using
     when processing the chunk discovery queue. We could perhaps actively change the
     LOD of the loaded chunks instead (`Query<Entity, With<LoadedChunk>>` should
     suffice).
+
+[^5]:
+    6x6x6 in a 32x32x32 chunk hierarchy: meaning 6 chunks \* 6 chunks \* 6
+    chunks \* 32 voxels \* 32 voxels \* 32 voxels = 7077888 voxels. [^6]
+
+[^6]:
+    This is worst case scenario, which can never really happen due to face
+    culling.

@@ -85,7 +85,7 @@ pub fn generate_voxels(
 
 #[inline]
 fn generate_color_from_heat(heat: f64) -> Color {
-    const DARK_FACTOR: f64 = 0.3;
+    const DARK_FACTOR: f64 = 1.0;
     const SENSITIVITY: f64 = 5.0;
 
     let modified_heat = (heat * SENSITIVITY).max(0.0);
@@ -99,7 +99,7 @@ fn generate_color_from_heat(heat: f64) -> Color {
 
 #[inline]
 fn generate_color_from_height(height: f64) -> Color {
-    const DARK_FACTOR: f64 = 0.3;
+    const DARK_FACTOR: f64 = 1.0;
     const HEIGHT_RANGE: f64 = 100.0; // Adjust this based on your height data
 
     let normalized_height = height / HEIGHT_RANGE;

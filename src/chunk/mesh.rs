@@ -33,7 +33,7 @@ pub fn mesh(
     let mut all_colors = vec![];
     let mut all_indices = vec![];
 
-    let lod_multiplier = lod;
+    let lod_multiplier = lod.pow(2);
 
     let width = base_width >> lod;
     let height = base_height >> lod;
@@ -45,8 +45,12 @@ pub fn mesh(
                 let index = (z * base_width * base_height) + (y * base_width) + x;
 
                 if let Some(voxel) = voxels.get(index as usize) {
-                    let voxel_size = voxel.size
-                        * (f16::from_f32(lod_multiplier.pow(2) as f32) + f16::from_f32(1.0));
+                    if !voxel.is_solid() {
+                        continue;
+                    }
+
+                    let voxel_size =
+                        f16::from_f32(voxel.size.to_f32() * (lod_multiplier as f32 + 1.0));
 
                     // not entirely sure why, but `VoxelFace::Back` and `VoxelFace::Top` have to
                     // be the other way around in comparison to the way we declared the indices,
@@ -59,13 +63,6 @@ pub fn mesh(
                         VoxelFace::Up,
                         VoxelFace::Down,
                     ];
-
-                    // currently, we're just checking if the voxel is solid. realistically, we
-                    // will want to do more checks eventually. things like frustum culling
-                    // could perhaps be handled in the same loop (separate function of course).
-                    if !voxel.is_solid() {
-                        continue;
-                    }
 
                     // Adjust indices for each voxel
                     let base_vertex_index = all_vertices.len() as u32;

@@ -68,6 +68,29 @@ pub fn unload_distant_chunks(
         let points =
             create_frustum_points((*pos_x, *pos_y, *pos_z).into(), (size, height, size).into());
 
+        let mut chunk = registry.get_chunk_at_mut([*pos_x, *pos_y, *pos_z]);
+
+        if discovery_settings.lod {
+            // this will require some more playing around to get the values right, LOD should probably
+            // be calculated in a much different way. but we'll just use this until we get the entire
+            // LOD system to work properly.
+            if let Some(chunk) = &mut chunk {
+                // get the difference that's the least. we'll base our LOD off of this.
+                // we use minimum instead of the maximum, to ensure even if the chunks are far away in
+                // terms of a single axis, but close in all of the others, it will be rendered in a
+                // higher quality rather than lower quality.
+                let min_diff = diff_x.min(diff_y).min(diff_z);
+                // we apply a scale to the difference, without this scale the LOD effect won't do too
+                // much.
+                let scaled_diff = min_diff * 3.0;
+
+                // round the LOD to be a u32
+                let rounded_lod = ((scaled_diff.round() - 1.0) as u32).max(0);
+
+                chunk.set_lod(rounded_lod);
+            }
+        }
+
         if diff_x - 1.0 > discovery_settings.discovery_radius.into()
             || diff_z - 1.0 > discovery_settings.discovery_radius.into()
             || diff_y - 1.0 > discovery_settings.discovery_radius_height.into()
@@ -78,8 +101,6 @@ pub fn unload_distant_chunks(
                 .next()
                 .is_none()
         {
-            let chunk = registry.get_chunk_at_mut([*pos_x, *pos_y, *pos_z]);
-
             if let Some(chunk) = chunk {
                 chunk.set_drawn(false);
                 chunk.set_busy(false);
