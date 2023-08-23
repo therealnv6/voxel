@@ -72,7 +72,7 @@ pub fn unload_distant_chunks(
             || diff_z - 1.0 > discovery_settings.discovery_radius.into()
             || diff_y - 1.0 > discovery_settings.discovery_radius_height.into()
             // also unload the chunks if they are out of vision
-            || is_in_frustum_batch_unsized(points, frustum.half_spaces, 0.0)
+            || is_in_frustum_batch_unsized(points, frustum.half_spaces)
                 .iter()
                 .filter(|result| **result)
                 .next()

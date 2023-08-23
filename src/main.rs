@@ -1,15 +1,4 @@
-use bevy_tweening::TweeningPlugin;
-use std::f32::consts::PI;
-
-use bevy::{
-    diagnostic::FrameTimeDiagnosticsPlugin,
-    input::common_conditions::input_toggle_active,
-    pbr::{wireframe::WireframePlugin, CascadeShadowConfigBuilder},
-    prelude::*,
-    render::{render_resource::WgpuFeatures, settings::WgpuSettings, RenderPlugin},
-    window::PresentMode,
-};
-use bevy_inspector_egui::{bevy_egui::EguiPlugin, DefaultInspectorConfigPlugin};
+use bevy::{prelude::*, window::PresentMode};
 
 use input::InputPlugin;
 use smooth_bevy_cameras::{
@@ -26,65 +15,32 @@ fn main() {
     App::new()
         .insert_resource(Msaa::Sample4)
         .add_plugins((
-            DefaultPlugins
-                .set(RenderPlugin {
-                    wgpu_settings: WgpuSettings {
-                        features: WgpuFeatures::POLYGON_MODE_LINE,
-                        ..default()
-                    },
-                })
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        present_mode: PresentMode::AutoNoVsync,
-                        ..default()
-                    }),
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: String::from("bevy voxels"),
+                    present_mode: PresentMode::AutoNoVsync,
                     ..default()
                 }),
-            WireframePlugin,
-            FrameTimeDiagnosticsPlugin,
+                ..default()
+            }),
             chunk::ChunkPlugin,
             LookTransformPlugin,
             FpsCameraPlugin::default(),
             InputPlugin,
-            DefaultInspectorConfigPlugin,
-            EguiPlugin,
-            TweeningPlugin,
         ))
         .add_systems(Startup, setup)
-        .add_systems(
-            Update,
-            (
-                ui::inspector_ui.run_if(input_toggle_active(true, KeyCode::Escape)),
-                animate_light_direction,
-            ),
-        )
         .run();
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            illuminance: 5000.0,
-            shadows_enabled: true,
-            ..default()
-        },
-        transform: Transform {
-            translation: Vec3::new(0.0, 100.0, 0.0),
-            rotation: Quat::from_rotation_x(-PI / 4.),
-            ..default()
-        },
-        cascade_shadow_config: CascadeShadowConfigBuilder {
-            num_cascades: 3,
-            first_cascade_far_bound: 4.0,
-            maximum_distance: 500.0,
-            ..default()
-        }
-        .into(),
-        ..default()
-    });
-
     commands
-        .spawn(Camera3dBundle::default())
+        .spawn(Camera3dBundle {
+            projection: Projection::Perspective(PerspectiveProjection {
+                fov: (90.0 / 360.0) * (std::f32::consts::PI * 2.0),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
         .insert(FpsCameraBundle::new(
             FpsCameraController {
                 smoothing_weight: 0.1,
@@ -92,17 +48,8 @@ fn setup(mut commands: Commands) {
                 translate_sensitivity: 35.0,
                 ..default()
             },
-            Vec3::new(-2.0, 5.0, 5.0),
+            Vec3::new(100.0, 120.0, 100.0),
             Vec3::new(0., 0., 0.),
             Vec3::Y,
         ));
-}
-
-fn animate_light_direction(
-    time: Res<Time>,
-    mut query: Query<&mut Transform, With<DirectionalLight>>,
-) {
-    for mut transform in &mut query {
-        transform.rotate_y(time.delta_seconds() * 0.5);
-    }
 }

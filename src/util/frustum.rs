@@ -15,9 +15,6 @@ use crate::chunk::registry::Coordinates;
 /// - `spaces`: An array of six `HalfSpace` instances representing the half-spaces
 ///    that define the frustum. Each `HalfSpace` includes a normal vector and a
 ///    distance from the origin. The normal vector points inward to the frustum.
-/// - `margin`: A small margin added to the frustum planes to account for potential
-///    rounding errors or inaccuracies in the frustum definition. It helps prevent
-///    false negatives due to points being slightly outside the frustum.
 ///
 /// # Returns
 ///
@@ -35,9 +32,7 @@ use crate::chunk::registry::Coordinates;
 ///     // ... more half-spaces ...
 /// ];
 ///
-/// let margin = 0.01;
-///
-/// let is_visible = is_in_frustum(point, frustum_planes, margin);
+/// let is_visible = is_in_frustum(point, frustum_planes);
 ///
 /// if is_visible {
 ///     println!("Point is visible.");
@@ -45,7 +40,7 @@ use crate::chunk::registry::Coordinates;
 ///     println!("Point is not visible.");
 /// }
 /// ```
-pub fn is_in_frustum(point: impl Into<Vec3A>, spaces: [HalfSpace; 6], margin: f32) -> bool {
+pub fn is_in_frustum(point: impl Into<Vec3A>, spaces: [HalfSpace; 6]) -> bool {
     let point = point.into();
 
     let normals = [
@@ -67,12 +62,12 @@ pub fn is_in_frustum(point: impl Into<Vec3A>, spaces: [HalfSpace; 6], margin: f3
     ];
 
     // perform the frustum culling check with expanded frustum planes
-    !(normals[0].dot(point) + (margin + distances[0]) < 0.0)
-        && !(normals[1].dot(point) + (margin + distances[1]) < 0.0)
-        && !(normals[2].dot(point) + (margin + distances[2]) < 0.0)
-        && !(normals[3].dot(point) + (margin + distances[3]) < 0.0)
-        && !(normals[4].dot(point) + (margin + distances[4]) < 0.0)
-        && !(normals[5].dot(point) + (margin + distances[5]) < 0.0)
+    !(normals[0].dot(point) + (distances[0]) < 0.0)
+        && !(normals[1].dot(point) + (distances[1]) < 0.0)
+        && !(normals[2].dot(point) + (distances[2]) < 0.0)
+        && !(normals[3].dot(point) + (distances[3]) < 0.0)
+        && !(normals[4].dot(point) + (distances[4]) < 0.0)
+        && !(normals[5].dot(point) + (distances[5]) < 0.0)
 }
 
 /// Determines if a batch of points is inside a frustum defined by six half-spaces.
@@ -89,9 +84,6 @@ pub fn is_in_frustum(point: impl Into<Vec3A>, spaces: [HalfSpace; 6], margin: f3
 /// - `spaces`: An array of six `HalfSpace` instances representing the half-spaces that
 ///    define the frustum. Each `HalfSpace` includes a normal vector and a distance from
 ///    the origin. The normal vector points inward to the frustum.
-/// - `margin`: A small margin added to the frustum planes to account for potential
-///    rounding errors or inaccuracies in the frustum definition. It helps prevent false
-///    negatives due to points being slightly outside the frustum.
 ///
 /// # Returns
 ///
@@ -114,9 +106,7 @@ pub fn is_in_frustum(point: impl Into<Vec3A>, spaces: [HalfSpace; 6], margin: f3
 ///     // ... more half-spaces ...
 /// ];
 ///
-/// let margin = 0.01;
-///
-/// let visibility = is_in_frustum_batch::<2>(points, frustum_planes, margin);
+/// let visibility = is_in_frustum_batch::<2>(points, frustum_planes);
 ///
 /// for (index, is_visible) in visibility.iter().enumerate() {
 ///     if *is_visible {
@@ -141,9 +131,7 @@ pub fn is_in_frustum(point: impl Into<Vec3A>, spaces: [HalfSpace; 6], margin: f3
 ///     // ... more half-spaces ...
 /// ];
 ///
-/// let margin = 0.01;
-///
-/// let visibility = is_in_frustum_batch::<2>(points, frustum_planes, margin);
+/// let visibility = is_in_frustum_batch::<2>(points, frustum_planes);
 ///
 /// let is_any_visible = visibility.iter()
 ///     .filter(|visible| **visible)
@@ -155,13 +143,12 @@ pub fn is_in_frustum(point: impl Into<Vec3A>, spaces: [HalfSpace; 6], margin: f3
 pub fn is_in_frustum_batch<const SIZE: usize>(
     points: impl IntoIterator<Item = impl Into<Vec3A>>,
     spaces: [HalfSpace; 6],
-    margin: f32,
 ) -> [bool; SIZE] {
     let mut results = [false; SIZE];
 
     for (index, point) in points.into_iter().enumerate() {
         let point = point.into();
-        let result = is_in_frustum(point, spaces, margin);
+        let result = is_in_frustum(point, spaces);
 
         results[index] = result;
     }
@@ -185,9 +172,6 @@ pub fn is_in_frustum_batch<const SIZE: usize>(
 /// - `spaces`: An array of six `HalfSpace` instances representing the half-spaces that
 ///    define the frustum. Each `HalfSpace` includes a normal vector and a distance from
 ///    the origin. The normal vector points inward to the frustum.
-/// - `margin`: A small margin added to the frustum planes to account for potential
-///    rounding errors or inaccuracies in the frustum definition. It helps prevent false
-///    negatives due to points being slightly outside the frustum.
 ///
 /// # Returns
 ///
@@ -210,9 +194,7 @@ pub fn is_in_frustum_batch<const SIZE: usize>(
 ///     // ... more half-spaces ...
 /// ];
 ///
-/// let margin = 0.01;
-///
-/// let visibility = is_in_frustum_batch_unsized(points, frustum_planes, margin);
+/// let visibility = is_in_frustum_batch_unsized(points, frustum_planes);
 ///
 /// for (index, is_visible) in visibility.iter().enumerate() {
 ///     if *is_visible {
@@ -237,9 +219,7 @@ pub fn is_in_frustum_batch<const SIZE: usize>(
 ///     // ... more half-spaces ...
 /// ];
 ///
-/// let margin = 0.01;
-///
-/// let visibility = is_in_frustum_batch_unsized(points, frustum_planes, margin);
+/// let visibility = is_in_frustum_batch_unsized(points, frustum_planes);
 ///
 /// let is_any_visible = visibility.iter()
 ///     .filter(|visible| **visible)
@@ -251,13 +231,12 @@ pub fn is_in_frustum_batch<const SIZE: usize>(
 pub fn is_in_frustum_batch_unsized(
     points: impl IntoIterator<Item = impl Into<Vec3A>>,
     spaces: [HalfSpace; 6],
-    margin: f32,
 ) -> [bool; get_frustum_point_amount()] {
     let mut results = [false; get_frustum_point_amount()];
 
     for (index, point) in points.into_iter().enumerate() {
         let point = point.into();
-        let result = is_in_frustum(point, spaces, margin);
+        let result = is_in_frustum(point, spaces);
 
         results[index] = result;
     }

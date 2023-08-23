@@ -7,7 +7,7 @@ use crate::chunk::{event::ChunkCreateEvent, registry::Coordinates};
 pub mod processing;
 pub mod query;
 
-pub const QUEUE_PROCESS_LIMIT: usize = 200;
+pub const QUEUE_PROCESS_LIMIT: usize = 20;
 
 #[derive(Event)]
 pub struct ChunkDiscoveryEvent;

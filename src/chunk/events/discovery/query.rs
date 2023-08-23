@@ -54,8 +54,8 @@ fn spawn_discovery_task(
     pool.spawn(async move {
         (-radius.0..=radius.0)
             .flat_map(|x_offset| {
-                (-radius.1..=radius.1).flat_map(move |y_offset| {
-                    (-radius.0..=radius.0).filter_map(move |z_offset| {
+                (-radius.0..=radius.0).flat_map(move |z_offset| {
+                    (-radius.1..=radius.1).filter_map(move |y_offset| {
                         let chunk_size = chunk_sizes.0 as i32;
                         let chunk_height = chunk_sizes.1 as i32;
                         let size = ChunkRegistry::CHUNK_SIZE;
@@ -73,7 +73,7 @@ fn spawn_discovery_task(
                         // this does not seem to be completely correct; the corners of the
                         // frustum still seem to get culled, are the half_spaces wrong, or
                         // is something else wrong? it works for now, so whatever!
-                        if is_in_frustum_batch_unsized(points, spaces, 0.0)
+                        if is_in_frustum_batch_unsized(points, spaces)
                             .iter()
                             .filter(|result| **result)
                             .next()
