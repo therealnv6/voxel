@@ -70,7 +70,8 @@ pub fn generate_voxels(
                     .max(0.0)
                     .min(1.0);
 
-                let color = generate_color_from_height(y_offset) + generate_color_from_heat(heat);
+                let color = generate_color_from_heat(heat);
+                // let color = generate_color_from_height(y_offset) + generate_color_from_heat(heat);
 
                 *voxel = Voxel {
                     color,
@@ -85,7 +86,7 @@ pub fn generate_voxels(
 
 #[inline]
 fn generate_color_from_heat(heat: f64) -> Color {
-    const DARK_FACTOR: f64 = 1.0;
+    const DARK_FACTOR: f64 = 0.6;
     const SENSITIVITY: f64 = 5.0;
 
     let modified_heat = (heat * SENSITIVITY).max(0.0);

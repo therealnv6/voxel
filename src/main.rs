@@ -31,7 +31,7 @@ fn setup(mut commands: Commands) {
     commands.spawn((
         Camera3dBundle {
             projection: Projection::Perspective(PerspectiveProjection {
-                fov: (90.0 / 360.0) * (std::f32::consts::PI * 2.0),
+                fov: (70.0 / 360.0) * (std::f32::consts::PI * 2.0),
                 ..Default::default()
             }),
             ..Default::default()

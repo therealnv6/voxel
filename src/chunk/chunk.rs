@@ -132,40 +132,32 @@ impl Chunk {
         self.flags.contains(ChunkFlags::Drawn)
     }
 
-    pub fn set_generated(&mut self, gen: bool) {
-        if gen {
-            self.flags |= ChunkFlags::Generated;
+    pub fn set_flag(&mut self, flag: ChunkFlags, value: bool) {
+        if value {
+            self.flags |= flag;
         } else {
-            self.flags &= !ChunkFlags::Generated;
+            self.flags &= !flag;
         }
+    }
+
+    pub fn set_generated(&mut self, gen: bool) {
+        self.set_flag(ChunkFlags::Generated, gen);
     }
 
     pub fn set_dirty(&mut self, dirty: bool) {
-        if dirty {
-            self.flags |= ChunkFlags::Dirty;
-        } else {
-            self.flags &= !ChunkFlags::Dirty;
-        }
+        self.set_flag(ChunkFlags::Dirty, dirty);
     }
 
     pub fn set_busy(&mut self, busy: bool) {
-        if busy {
-            self.flags |= ChunkFlags::Busy;
-        } else {
-            self.flags &= !ChunkFlags::Busy;
-        }
+        self.set_flag(ChunkFlags::Busy, busy);
     }
 
     pub fn set_drawn(&mut self, drawn: bool) {
-        if drawn {
-            self.flags |= ChunkFlags::Drawn;
-        } else {
-            self.flags &= !ChunkFlags::Drawn;
-        }
+        self.set_flag(ChunkFlags::Drawn, drawn);
     }
 
-    pub fn apply_mask(&mut self, flag: EnumSet<ChunkFlags>) {
-        self.flags &= !flag;
+    pub fn apply_mask(&mut self, flags: EnumSet<ChunkFlags>) {
+        self.flags ^= flags;
     }
 
     pub fn get_flags(&self) -> EnumSet<ChunkFlags> {

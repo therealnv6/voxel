@@ -83,7 +83,7 @@ pub fn mesh(
                                 || get_voxel_face(
                                     &voxels,
                                     [x, y, z],
-                                    face.clone(),
+                                    &face,
                                     (base_width, base_height, base_depth),
                                 )
                                 .is_none()
@@ -128,11 +128,11 @@ pub fn mesh(
 }
 
 pub fn get_voxel_face<'a>(
-    voxels: &Vec<Voxel>,
+    voxels: &'a Vec<Voxel>,
     coordinates: impl Into<UVec3>,
-    face: VoxelFace,
+    face: &'a VoxelFace,
     (width, height, _): (u32, u32, u32),
-) -> Option<&Voxel> {
+) -> Option<&'a Voxel> {
     let coordinates = coordinates.into();
     let UVec3 { x, y, z } = coordinates.try_into().unwrap(); // Use UVec3 instead of IVec3
 

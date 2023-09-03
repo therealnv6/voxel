@@ -3,13 +3,10 @@ use bevy_tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
 
 use crate::chunk::{
-    chunk::ChunkFlags,
     mesh::mesh,
     registry::{ChunkRegistry, Coordinates},
     MeshSettings,
 };
-
-use super::draw::ChunkDrawEvent;
 
 #[derive(Event, Clone)]
 pub struct ChunkMeshEvent {
@@ -72,10 +69,7 @@ pub fn process_chunk_meshing(
     mut tasks: Query<(Entity, &mut ChunkMeshTask)>,
     mut registry: ResMut<ChunkRegistry>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut writer: EventWriter<ChunkDrawEvent>,
 ) {
-    let mut events = Vec::new();
-
     tasks.iter_mut().for_each(|(entity, mut task)| {
         let task = &mut task.0;
         let Some((mesh, coordinates)) = future::block_on(future::poll_once(task)) else {
@@ -94,10 +88,6 @@ pub fn process_chunk_meshing(
         };
 
         chunk.set_mesh(mesh_id);
-        chunk.apply_mask(ChunkFlags::Dirty & ChunkFlags::Busy);
-
-        events.push(ChunkDrawEvent { coordinates });
+        chunk.set_busy(false);
     });
-
-    writer.send_batch(events);
 }

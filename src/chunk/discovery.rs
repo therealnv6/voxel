@@ -5,6 +5,8 @@ use crate::{
     util::frustum::{create_frustum_points, is_in_frustum_batch_unsized},
 };
 
+use super::events::discovery::BusyLocations;
+
 /// Unload Distant Chunks System
 ///
 /// This system is responsible for unloading chunks that have moved far enough away from the camera's
@@ -31,6 +33,7 @@ use crate::{
 pub fn unload_distant_chunks(
     mut commands: Commands,
     mut registry: ResMut<ChunkRegistry>,
+    busy: Res<BusyLocations>,
     loaded_chunks: Query<(Entity, &ChunkEntity)>,
     transform: Query<(&Transform, &Frustum)>,
     discovery_settings: Res<DiscoverySettings>,
@@ -44,6 +47,10 @@ pub fn unload_distant_chunks(
             y: pos_y,
             z: pos_z,
         } = position;
+
+        if busy.0.contains(position) {
+            continue;
+        }
 
         let size = ChunkRegistry::CHUNK_SIZE;
         let height = ChunkRegistry::CHUNK_HEIGHT;

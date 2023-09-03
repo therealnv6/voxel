@@ -56,6 +56,7 @@ pub fn draw_chunks(
                 ));
 
             chunk.set_drawn(true);
+            chunk.set_busy(false);
         }
     }
 }

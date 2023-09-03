@@ -4,7 +4,7 @@ use bevy_tasks::{AsyncComputeTaskPool, Task};
 use crate::{
     chunk::{
         registry::{ChunkRegistry, Coordinates},
-        DiscoverySettings,
+        BusyLocations, DiscoverySettings,
     },
     util::frustum::{create_frustum_points, is_in_frustum_batch_unsized},
 };
@@ -13,6 +13,7 @@ use super::ChunkDiscoveryTask;
 
 pub fn handle_chunk_discovery(
     mut commands: Commands,
+    mut busy: ResMut<BusyLocations>,
     discovery_settings: Res<DiscoverySettings>,
     transform: Query<(&Transform, &Frustum)>,
 ) {
@@ -36,6 +37,7 @@ pub fn handle_chunk_discovery(
         (center_chunk_x, center_chunk_y, center_chunk_z),
         (radius, radius_height),
         (chunk_size, chunk_height),
+        &mut busy,
         &frustum,
     );
 
@@ -46,50 +48,62 @@ fn spawn_discovery_task(
     center_chunk: (i32, i32, i32),
     radius: (i32, i32),
     chunk_sizes: (f32, f32),
+    locations: &mut BusyLocations,
     frustum: &Frustum,
 ) -> Task<Vec<Coordinates>> {
     let pool = AsyncComputeTaskPool::get();
     let spaces = frustum.half_spaces;
+    let radius_squared = radius.0.pow(2);
+
+    // we clone here to not write the "busy" coordinates into the global set, while still being
+    // able to read from the global set. writing this to the global set would interfere with the
+    // processing task.
+    let mut local_busy = locations.0.clone();
 
     pool.spawn(async move {
-        (-radius.0..=radius.0)
-            .flat_map(|x_offset| {
-                (-radius.0..=radius.0).flat_map(move |z_offset| {
-                    (-radius.1..=radius.1).filter_map(move |y_offset| {
-                        if x_offset.pow(2) + z_offset.pow(2) >= radius.0.pow(2) {
-                            return None;
-                        }
+        let mut result = Vec::new();
 
-                        let chunk_size = chunk_sizes.0 as i32;
-                        let chunk_height = chunk_sizes.1 as i32;
-                        let size = ChunkRegistry::CHUNK_SIZE;
-                        let height = ChunkRegistry::CHUNK_HEIGHT;
+        for x_offset in -radius.0..=radius.0 {
+            for z_offset in -radius.0..=radius.0 {
+                for y_offset in -radius.1..=radius.1 {
+                    if x_offset * x_offset + z_offset * z_offset >= radius_squared {
+                        continue;
+                    }
 
-                        let x = (center_chunk.0 + x_offset) * chunk_size;
-                        let y = (center_chunk.1 + y_offset) * chunk_height;
-                        let z = (center_chunk.2 + z_offset) * chunk_size;
+                    let chunk_size = chunk_sizes.0 as i32;
+                    let chunk_height = chunk_sizes.1 as i32;
 
-                        let point = Coordinates { x, y, z };
-                        let points =
-                            create_frustum_points((x, y, z).into(), (size, height, size).into());
+                    let x = (center_chunk.0 + x_offset) * chunk_size;
+                    let y = (center_chunk.1 + y_offset) * chunk_height;
+                    let z = (center_chunk.2 + z_offset) * chunk_size;
 
-                        // very simple frustum culling, nothing special.
-                        // this does not seem to be completely correct; the corners of the
-                        // frustum still seem to get culled, are the half_spaces wrong, or
-                        // is something else wrong? it works for now, so whatever!
-                        if is_in_frustum_batch_unsized(points, spaces)
-                            .iter()
-                            .filter(|result| **result)
-                            .next()
-                            .is_none()
-                        {
-                            return None;
-                        }
+                    let point = Coordinates { x, y, z };
 
-                        Some(point)
-                    })
-                })
-            })
-            .collect()
+                    if local_busy.contains(&point) {
+                        continue;
+                    }
+
+                    let points = create_frustum_points(
+                        point,
+                        (
+                            ChunkRegistry::CHUNK_SIZE,
+                            ChunkRegistry::CHUNK_HEIGHT,
+                            ChunkRegistry::CHUNK_SIZE,
+                        )
+                            .into(),
+                    );
+
+                    if is_in_frustum_batch_unsized(points, spaces)
+                        .iter()
+                        .any(|result| *result)
+                    {
+                        result.push(point);
+                        local_busy.insert(point);
+                    }
+                }
+            }
+        }
+
+        result
     })
 }

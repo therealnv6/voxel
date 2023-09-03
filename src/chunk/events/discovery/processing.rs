@@ -12,7 +12,7 @@ use bevy::utils::HashSet;
 use enumset::EnumSet;
 use futures_lite::future;
 
-use super::{ChunkDiscoveryTask, ProcessWriterType};
+use super::{BusyLocations, ChunkDiscoveryTask, ProcessWriterType};
 
 pub fn process_discovery_tasks(
     mut commands: Commands,
@@ -23,15 +23,17 @@ pub fn process_discovery_tasks(
     mut mesh_writer: EventWriter<ChunkMeshEvent>,
     mut process_queue: Local<Vec<ProcessWriterType>>,
     // is it worth to use a HashSet for this instead of a Vec?
-    mut process_list: Local<HashSet<Coordinates>>,
+    mut busy_locations: ResMut<BusyLocations>,
     mut last_time: Local<u128>,
-    registry: Res<ChunkRegistry>,
+    mut registry: ResMut<ChunkRegistry>,
     time: Res<Time>,
 ) {
+    let mut busy_locations = &mut busy_locations.0;
+
     // clear the coordinate process list, we'll do this every 150 milliseconds,
     // less could probably work, but can't really tell too big of a difference.
     if time.elapsed().as_millis() - *last_time >= 150 {
-        process_list.clear();
+        busy_locations.clear();
         *last_time = time.elapsed().as_millis();
     }
 
@@ -41,8 +43,8 @@ pub fn process_discovery_tasks(
             if let Some(data) = future::block_on(future::poll_once(&mut task.0)) {
                 commands.entity(entity).remove::<ChunkDiscoveryTask>();
 
-                let registry = &registry;
-                let mut process_list = &mut process_list;
+                let registry = &mut registry;
+                let mut process_list = &mut busy_locations;
 
                 let result = data
                     .into_iter()
@@ -57,7 +59,7 @@ pub fn process_discovery_tasks(
 
                 return Some(result);
             }
-            return None;
+            None
         })
         .flatten()
         .collect::<Vec<_>>();
@@ -84,17 +86,17 @@ pub fn process_discovery_tasks(
 
 fn process_event_data(
     coordinates: Coordinates,
-    registry: &ChunkRegistry,
+    registry: &mut ChunkRegistry,
     process_list: &mut HashSet<IVec3>,
 ) -> Option<ProcessWriterType> {
-    let Some(chunk) = registry.get_chunk_at(coordinates) else {
+    let Some(chunk) = registry.get_chunk_at_mut(coordinates) else {
         let event = ChunkCreateEvent { coordinates };
         let writer = ProcessWriterType::ChunkCreationWriter(event);
 
         return Some(writer);
     };
 
-    let result = process_flags(coordinates, chunk.get_flags());
+    let result = process_flags(coordinates, &mut chunk.get_flags());
 
     if let Some(_) = result {
         process_list.insert(coordinates);
@@ -105,13 +107,15 @@ fn process_event_data(
 
 fn process_flags(
     coordinates: Coordinates,
-    flags: EnumSet<ChunkFlags>,
+    flags: &mut EnumSet<ChunkFlags>,
 ) -> Option<ProcessWriterType> {
     if flags.contains(ChunkFlags::Busy) {
         return None;
     }
 
-    if !flags.contains(ChunkFlags::Generated) {
+    flags.insert(ChunkFlags::Busy);
+
+    if !flags.contains(ChunkFlags::Generated) && !flags.contains(ChunkFlags::Meshed) {
         let event = ChunkGenerateEvent { coordinates };
         let writer = ProcessWriterType::GenerateWriter(event);
 
@@ -131,6 +135,10 @@ fn process_flags(
 
         return Some(writer);
     }
+
+    // none of the cases were met, meaning the chunk is not busy. if we don't remove the busy flag,
+    // it will be marked as busy forever.
+    flags.remove(ChunkFlags::Busy);
 
     None
 }
