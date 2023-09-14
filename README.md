@@ -5,6 +5,14 @@ a simple voxel game "engine" written in Rust, using
 
 ![screenshot](https://github.com/therealnv6/voxel/blob/main/.assets/screenshot1.png)
 
+# NOTE!
+
+- This is not highly in development anymore, as I've gotten too bored of this
+  project. I'll still be working on it every now and then.
+- This is all based off of my ideas; nothing I'm using is based on already
+  existing algorithms of any sort (except for noise generation, but that's
+  something completely unrelated). Most of it is definitely sub-optimal.
+
 # Roadmap
 
 - [x] 3D chunk registry
@@ -13,6 +21,8 @@ a simple voxel game "engine" written in Rust, using
   - [discovery](https://github.com/therealnv6/voxel/blob/4d066d7b06bb6bd9b358d3f9c97532305b74026e/src/chunk/events/discovery.rs#L61)
   - [unloading](https://github.com/therealnv6/voxel/blob/7bb1704d12a0f1bf77acc6bdcc87e483758c5a0e/src/chunk/discovery.rs#L75)
 - [ ] LOD [^3]
+- [ ] Off-load onto GPU using compute shaders.
+- [ ] Massively refactor code; the current code sucks.
 - [ ] Good performance.
   - Currently, performance scales pretty bad. 8x4x8[^2] discovery radius rather
     easily achieves framerates of ~1500[^1], whereas 8x8x8 gets around ~700[^1],

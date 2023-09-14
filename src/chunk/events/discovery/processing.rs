@@ -46,16 +46,18 @@ pub fn process_discovery_tasks(
                 let registry = &mut registry;
                 let mut process_list = &mut busy_locations;
 
-                let result = data
+                let result: Vec<_> = data
                     .into_iter()
-                    .flat_map(move |coordinates| {
+                    .flat_map(|coordinates| {
                         if process_list.contains(&coordinates) {
-                            return None;
+                            None
+                        } else {
+                            Some(process_event_data(coordinates, registry, &mut process_list))
                         }
-
-                        process_event_data(coordinates, registry, &mut process_list)
                     })
-                    .collect::<Vec<_>>();
+                    // double flatten, otherwise it would be a Vec<Option<T>>
+                    .flatten()
+                    .collect();
 
                 return Some(result);
             }

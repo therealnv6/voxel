@@ -4,7 +4,7 @@ use bevy_tasks::{AsyncComputeTaskPool, Task};
 use crate::{
     chunk::{
         registry::{ChunkRegistry, Coordinates},
-        BusyLocations, DiscoverySettings,
+        DiscoverySettings,
     },
     util::frustum::{create_frustum_points, is_in_frustum_batch_unsized},
 };
@@ -13,7 +13,6 @@ use super::ChunkDiscoveryTask;
 
 pub fn handle_chunk_discovery(
     mut commands: Commands,
-    mut busy: ResMut<BusyLocations>,
     discovery_settings: Res<DiscoverySettings>,
     transform: Query<(&Transform, &Frustum)>,
 ) {
@@ -37,7 +36,6 @@ pub fn handle_chunk_discovery(
         (center_chunk_x, center_chunk_y, center_chunk_z),
         (radius, radius_height),
         (chunk_size, chunk_height),
-        &mut busy,
         &frustum,
     );
 
@@ -48,20 +46,18 @@ fn spawn_discovery_task(
     center_chunk: (i32, i32, i32),
     radius: (i32, i32),
     chunk_sizes: (f32, f32),
-    locations: &mut BusyLocations,
     frustum: &Frustum,
 ) -> Task<Vec<Coordinates>> {
     let pool = AsyncComputeTaskPool::get();
     let spaces = frustum.half_spaces;
     let radius_squared = radius.0.pow(2);
 
-    // we clone here to not write the "busy" coordinates into the global set, while still being
-    // able to read from the global set. writing this to the global set would interfere with the
-    // processing task.
-    let mut local_busy = locations.0.clone();
-
     pool.spawn(async move {
-        let mut result = Vec::new();
+        // reserve elements to avoid resizing the vector; if we don't do this we could resize the
+        // result vector thousands of times within the loop below.
+        let mut result = Vec::with_capacity((radius.0 * radius.0 * radius.1).try_into().expect(
+            "radius.0 * radius.0 * radius.1 does not fit in usize; is your chunk radius too big?",
+        ));
 
         for x_offset in -radius.0..=radius.0 {
             for z_offset in -radius.0..=radius.0 {
@@ -79,10 +75,6 @@ fn spawn_discovery_task(
 
                     let point = Coordinates { x, y, z };
 
-                    if local_busy.contains(&point) {
-                        continue;
-                    }
-
                     let points = create_frustum_points(
                         point,
                         (
@@ -98,7 +90,6 @@ fn spawn_discovery_task(
                         .any(|result| *result)
                     {
                         result.push(point);
-                        local_busy.insert(point);
                     }
                 }
             }

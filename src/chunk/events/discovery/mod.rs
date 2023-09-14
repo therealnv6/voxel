@@ -17,7 +17,7 @@ pub mod query;
 // the performance hit is mostly noticeable when having to process a lot of chunks are added to the
 // queue at the same time, for example, if you suddenly move into a section of the world where no
 // chunks have been loaded yet.
-pub const QUEUE_PROCESS_LIMIT: usize = 20;
+pub const QUEUE_PROCESS_LIMIT: usize = usize::MAX;
 
 #[derive(Event)]
 pub struct ChunkDiscoveryEvent;

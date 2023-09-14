@@ -5,7 +5,7 @@ use bevy::{
 use half::f16;
 
 use super::{
-    chunk::VoxelFace,
+    chunk::{ChunkDimensions, VoxelFace},
     voxel::{Voxel, VoxelMeshData},
     MeshSettings,
 };
@@ -20,24 +20,37 @@ const INDICES_SET: [[u32; 6]; 6] = [
 ];
 
 pub fn mesh(
-    voxels: Vec<Voxel>,
+    voxels: &Vec<Voxel>,
     lod: u32,
     settings: MeshSettings,
-    UVec3 {
-        x: base_width,
-        y: base_height,
-        z: base_depth,
-    }: UVec3,
+    ChunkDimensions {
+        width: base_width,
+        height: base_height,
+        depth: base_depth,
+    }: &ChunkDimensions,
 ) -> Mesh {
-    let mut all_vertices = vec![];
-    let mut all_colors = vec![];
-    let mut all_indices = vec![];
 
     let lod_multiplier = lod.pow(2);
 
     let width = base_width >> lod;
     let height = base_height >> lod;
     let depth = base_depth >> lod;
+
+    // calculate the expected number of vertices, colors, and indices in advance.
+    let expected_vertex_count: usize = (width * height * depth * 24)
+        .try_into()
+        .expect("Could not fit into usize!"); // 24 vertices per voxel
+
+    let expected_index_count: usize = (width * height * depth * 36)
+        .try_into()
+        .expect("Could not fit into usize!"); // 36 indices per voxel
+
+    let expected_color_count: usize = expected_vertex_count;
+
+    // preallocate vectors with the expected capacity.
+    let mut all_vertices = Vec::with_capacity(expected_vertex_count);
+    let mut all_colors = Vec::with_capacity(expected_color_count);
+    let mut all_indices = Vec::with_capacity(expected_index_count);
 
     for z in 0..depth {
         for y in 0..height {
@@ -131,7 +144,7 @@ pub fn get_voxel_face<'a>(
     voxels: &'a Vec<Voxel>,
     coordinates: impl Into<UVec3>,
     face: &'a VoxelFace,
-    (width, height, _): (u32, u32, u32),
+    (width, height, _): (&'a u32, &'a u32, &'a u32),
 ) -> Option<&'a Voxel> {
     let coordinates = coordinates.into();
     let UVec3 { x, y, z } = coordinates.try_into().unwrap(); // Use UVec3 instead of IVec3
@@ -145,7 +158,7 @@ pub fn get_voxel_face<'a>(
         VoxelFace::Down => (x, y - 1, z),
     };
 
-    if nx < width && ny < height {
+    if nx < *width && ny < *height {
         return voxels
             .get((nx + ny * (width) + nz * (width) * (height)) as usize)
             .filter(|voxel| voxel.is_solid());

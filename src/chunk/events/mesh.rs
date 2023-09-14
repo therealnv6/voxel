@@ -14,7 +14,7 @@ pub struct ChunkMeshEvent {
 }
 
 #[derive(Component)]
-pub struct ChunkMeshTask(Task<(Mesh, Coordinates)>);
+pub struct ChunkMeshTask(Task<Option<(Mesh, Coordinates)>>);
 
 pub fn mesh_chunk(
     mut commands: Commands,
@@ -28,38 +28,22 @@ pub fn mesh_chunk(
         let ChunkMeshEvent { coordinates } = event;
 
         let coordinates = *coordinates;
+        let registry = &mut registry;
 
         if let Some(chunk) = registry.get_chunk_at_mut(coordinates) {
             chunk.set_busy(true);
 
             let settings = settings.clone();
-            let dimensions = chunk.get_dimensions();
+            let dimensions = *chunk.get_dimensions();
 
             let lod = chunk.get_lod();
-            let binding = chunk.get_voxels();
 
-            let task = pool.spawn(async move {
-                let voxels = binding.read();
+            // we clone an Arc<T> here, not the voxels themselves
+            let voxels = chunk.get_voxels().clone();
 
-                // this looks a bit shit, but hey it works.
-                let value = (
-                    mesh(
-                        if let Ok(voxels) = voxels {
-                            voxels.to_vec()
-                        } else {
-                            vec![]
-                        },
-                        lod,
-                        settings,
-                        dimensions,
-                    ),
-                    coordinates,
-                );
-
-                return value;
-            });
-
-            commands.spawn(ChunkMeshTask(task));
+            commands.spawn(ChunkMeshTask(pool.spawn(async move {
+                return Some((mesh(&voxels, lod, settings, &dimensions), coordinates));
+            })));
         }
     }
 }
@@ -72,7 +56,7 @@ pub fn process_chunk_meshing(
 ) {
     tasks.iter_mut().for_each(|(entity, mut task)| {
         let task = &mut task.0;
-        let Some((mesh, coordinates)) = future::block_on(future::poll_once(task)) else {
+        let Some(Some((mesh, coordinates))) = future::block_on(future::poll_once(task)) else {
             return;
         };
 

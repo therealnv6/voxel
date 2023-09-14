@@ -15,14 +15,10 @@ pub fn generate_voxels(
     }: IVec3,
     (width, height, depth): (u32, u32, u32),
 ) -> Vec<Voxel> {
-    let mut voxels: Vec<Voxel> = vec![
-        Voxel {
-            size: f16::from_f32(1.0),
-            is_solid: false,
-            color: Color::rgba(0.0, 0.0, 0.0, 0.0),
-        };
-        (width * height * depth).try_into().unwrap()
-    ];
+    let mut voxels: Vec<Voxel> =
+        // preallocate voxel vector with Voxel::default() values (empty voxels).
+        // avoids re-allocating the vector, and ensures the vector is always the same length.
+        vec![Voxel::default(); (width * height * depth).try_into().unwrap()];
 
     let frequency_scale: f64 = settings.frequency_scale;
     let amplitude_scale: f64 = settings.amplitude_scale;
@@ -70,14 +66,10 @@ pub fn generate_voxels(
                     .max(0.0)
                     .min(1.0);
 
-                let color = generate_color_from_heat(heat);
-                // let color = generate_color_from_height(y_offset) + generate_color_from_heat(heat);
-
-                *voxel = Voxel {
-                    color,
-                    size: f16::from_f32(1.0),
-                    is_solid: true,
-                };
+                *voxel = Voxel::new_solid(
+                    generate_color_from_height(y_offset) + generate_color_from_heat(heat),
+                    f16::from_f32(1.0),
+                );
             }
         });
 
