@@ -29,28 +29,15 @@ pub fn mesh(
         depth: base_depth,
     }: &ChunkDimensions,
 ) -> Mesh {
-
     let lod_multiplier = lod.pow(2);
 
     let width = base_width >> lod;
     let height = base_height >> lod;
     let depth = base_depth >> lod;
 
-    // calculate the expected number of vertices, colors, and indices in advance.
-    let expected_vertex_count: usize = (width * height * depth * 24)
-        .try_into()
-        .expect("Could not fit into usize!"); // 24 vertices per voxel
-
-    let expected_index_count: usize = (width * height * depth * 36)
-        .try_into()
-        .expect("Could not fit into usize!"); // 36 indices per voxel
-
-    let expected_color_count: usize = expected_vertex_count;
-
-    // preallocate vectors with the expected capacity.
-    let mut all_vertices = Vec::with_capacity(expected_vertex_count);
-    let mut all_colors = Vec::with_capacity(expected_color_count);
-    let mut all_indices = Vec::with_capacity(expected_index_count);
+    let mut all_vertices = Vec::new();
+    let mut all_colors = Vec::new();
+    let mut all_indices = Vec::new();
 
     for z in 0..depth {
         for y in 0..height {

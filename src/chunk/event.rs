@@ -10,7 +10,12 @@ pub fn create_chunk(
     mut reader: EventReader<ChunkCreateEvent>,
     mut registry: ResMut<ChunkRegistry>,
 ) {
-    for ChunkCreateEvent { coordinates } in reader.iter() {
+    let iter = reader.iter();
+    let length = iter.len();
+
+    registry.reserve_chunks(length);
+
+    for ChunkCreateEvent { coordinates } in iter {
         registry.push_chunk_at(
             *coordinates,
             super::chunk::Chunk::new(

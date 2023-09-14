@@ -61,6 +61,11 @@ impl ChunkRegistry {
         self.chunks.entry(chunk_id).or_insert(chunk);
     }
 
+    pub fn reserve_chunks(&mut self, chunks: usize) {
+        // is reserving needed on a HashMap? not sure
+        self.chunks.reserve(chunks);
+    }
+
     pub fn get_all_chunks(
         &mut self,
     ) -> bevy::utils::hashbrown::hash_map::ValuesMut<'_, i32, Chunk> {

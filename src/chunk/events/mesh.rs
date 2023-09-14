@@ -73,5 +73,6 @@ pub fn process_chunk_meshing(
 
         chunk.set_mesh(mesh_id);
         chunk.set_busy(false);
+        chunk.set_dirty(false);
     });
 }

@@ -19,14 +19,10 @@ pub fn draw_chunks(
     mut registry: ResMut<ChunkRegistry>,
 ) {
     let material = material_cache.get_or_insert_with(|| materials.add(StandardMaterial::default()));
+    let iter = reader.iter();
 
-    for ChunkDrawEvent {
-        coordinates: Coordinates { x, y, z },
-    } in reader.iter()
-    {
-        let (x, y, z) = (*x, *y, *z);
-
-        let Some(chunk) = registry.get_chunk_at_mut([x, y, z]) else {
+    for ChunkDrawEvent { coordinates } in iter {
+        let Some(chunk) = registry.get_chunk_at_mut(*coordinates) else {
             continue;
         };
 
@@ -45,12 +41,12 @@ pub fn draw_chunks(
                 .remove::<Animator<Transform>>()
                 .insert((
                     ChunkEntity {
-                        position: (x, y, z).into(),
+                        position: *coordinates,
                     },
                     MaterialMeshBundle {
                         mesh,
                         material: material.clone_weak(),
-                        transform: Transform::from_xyz(x as f32, y as f32, z as f32),
+                        transform: Transform::from_translation(coordinates.as_vec3()),
                         ..Default::default()
                     },
                 ));

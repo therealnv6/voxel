@@ -34,8 +34,8 @@ impl Plugin for ChunkPlugin {
                 occlusion_culling: true,
             })
             .insert_resource(DiscoverySettings {
-                discovery_radius: 3,
-                discovery_radius_height: 3,
+                discovery_radius: 6,
+                discovery_radius_height: 6,
                 // we'll disable this by default, as it's kinda broken.
                 // turning this on makes testing relatively hard due to the absence of proper face/occlusion culling
                 lod: false,
